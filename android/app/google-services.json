@@ -1,0 +1,76 @@
+{
+  "project_info": {
+    "project_number": "36060630529",
+    "project_id": "utkarsh-8cf54",
+    "storage_bucket": "utkarsh-8cf54.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:36060630529:android:7cd016722d5905d1ebfa00",
+        "android_client_info": {
+          "package_name": "com.example.utkarsh"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "36060630529-a53dbpcc7v0bhkj2bqpnf1r5vf1765dj.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBtBEvoMX0pFOjgh_dUqJXR0Ghmt4af7fU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "36060630529-a53dbpcc7v0bhkj2bqpnf1r5vf1765dj.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:36060630529:android:ea07dae77168e667ebfa00",
+        "android_client_info": {
+          "package_name": "com.utkarshapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "36060630529-aa54o3sfh6srpnuda0n7ohphh3qj6a3b.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.utkarshapp",
+            "certificate_hash": "4fb4bc3e8a98cb02ac1ff66f23d4cf9a648eebdb"
+          }
+        },
+        {
+          "client_id": "36060630529-a53dbpcc7v0bhkj2bqpnf1r5vf1765dj.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBtBEvoMX0pFOjgh_dUqJXR0Ghmt4af7fU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "36060630529-a53dbpcc7v0bhkj2bqpnf1r5vf1765dj.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
