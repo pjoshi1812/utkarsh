@@ -4,7 +4,7 @@ import 'firebase_options.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/student_enrollment_screen.dart';
-import 'screens/explore_more_screen.dart';
+import 'screens/explore_screen.dart';
 import 'screens/admin_dashboard_screen.dart';
 import 'screens/student_dashboard_screen.dart';
 
@@ -26,7 +26,7 @@ class MainApp extends StatelessWidget {
         '/login': (context) => const LoginScreen(),
         '/register': (context) => const RegisterScreen(),
         '/student-enrollment': (context) => const StudentEnrollmentScreen(),
-        '/explore-more': (context) => const ExploreMoreScreen(),
+        '/explore-more': (context) => const ExploreScreen(),
         '/admin-dashboard': (context) => const AdminDashboardScreen(),
         '/student-dashboard': (context) => const StudentDashboardScreen(),
       },
