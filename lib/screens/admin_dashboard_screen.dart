@@ -112,6 +112,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                         ),
                         _buildFeatureCard(
                           context,
+                          'Attendance',
+                          Icons.event_available,
+                          Colors.green,
+                          () {
+                            Navigator.of(context).pushNamed('/attendance');
+                          },
+                        ),
+                        _buildFeatureCard(
+                          context,
                           'Student Management',
                           Icons.school,
                           Colors.orange,

@@ -7,6 +7,7 @@ import 'screens/student_enrollment_screen.dart';
 import 'screens/explore_screen.dart';
 import 'screens/admin_dashboard_screen.dart';
 import 'screens/student_dashboard_screen.dart';
+import 'screens/attendance_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,6 +30,7 @@ class MainApp extends StatelessWidget {
         '/explore-more': (context) => const ExploreScreen(),
         '/admin-dashboard': (context) => const AdminDashboardScreen(),
         '/student-dashboard': (context) => const StudentDashboardScreen(),
+        '/attendance': (context) => const AttendanceScreen(),
       },
     );
   }
