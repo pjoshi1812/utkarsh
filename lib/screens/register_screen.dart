@@ -99,9 +99,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
           );
 
-          // Navigate to login page after registration
+          // Navigate to explore page after registration
           if (context.mounted) {
-            Navigator.pushReplacementNamed(context, '/login');
+            Navigator.pushReplacementNamed(context, '/explore-more');
           }
        }
     } on FirebaseAuthException catch (e) {
@@ -178,9 +178,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
          ),
        );
        
-       // Navigate to login page after registration
+       // Navigate to explore page after registration
        if (context.mounted) {
-         Navigator.pushReplacementNamed(context, '/login');
+         Navigator.pushReplacementNamed(context, '/explore-more');
        }
     } catch (e) {
       ScaffoldMessenger.of(

@@ -1,0 +1,28 @@
+[
+    {
+        "origin": [
+            "http://localhost:*",
+            "https://localhost:*",
+            "http://127.0.0.1:*",
+            "https://127.0.0.1:*",
+            "https://utkarsh-8cf54.web.app",
+            "https://utkarsh-8cf54.firebaseapp.com"
+        ],
+        "method": [
+            "GET",
+            "POST",
+            "PUT",
+            "DELETE",
+            "HEAD",
+            "OPTIONS"
+        ],
+        "maxAgeSeconds": 3600,
+        "responseHeader": [
+            "Content-Type",
+            "Authorization",
+            "x-goog-*",
+            "Content-Length",
+            "User-Agent"
+        ]
+    }
+]

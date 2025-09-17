@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../models/content_model.dart';
+import 'content_viewer_screen.dart';
+import 'mcq_test_screen.dart';
 
 class StudentDashboardScreen extends StatefulWidget {
   const StudentDashboardScreen({super.key});
@@ -12,6 +15,8 @@ class StudentDashboardScreen extends StatefulWidget {
 class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
   Map<String, dynamic>? _enrollmentData;
   bool _isLoading = true;
+  String _selectedResultType =
+      'All Results'; // For filtering MCQ vs Descriptive
 
   @override
   void initState() {
@@ -24,12 +29,13 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
         // Find the approved enrollment for this user
-        final querySnapshot = await FirebaseFirestore.instance
-            .collection('enrollments')
-            .where('parentUid', isEqualTo: user.uid)
-            .where('status', isEqualTo: 'approved')
-            .limit(1)
-            .get();
+        final querySnapshot =
+            await FirebaseFirestore.instance
+                .collection('enrollments')
+                .where('parentUid', isEqualTo: user.uid)
+                .where('status', isEqualTo: 'approved')
+                .limit(1)
+                .get();
 
         if (querySnapshot.docs.isNotEmpty) {
           setState(() {
@@ -56,10 +62,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
       appBar: AppBar(
         title: const Text(
           'Student Dashboard',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.green[700],
         elevation: 0,
@@ -69,7 +72,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
             onPressed: () async {
               await FirebaseAuth.instance.signOut();
               if (context.mounted) {
-                Navigator.of(context).pushReplacementNamed('/login');
+                Navigator.of(context).pushReplacementNamed('/explore-more');
               }
             },
           ),
@@ -84,9 +87,10 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
             ),
           ),
           SafeArea(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _enrollmentData == null
+            child:
+                _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _enrollmentData == null
                     ? _buildNoEnrollmentView()
                     : _buildDashboardContent(),
           ),
@@ -102,11 +106,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset(
-              'assets/utkarsh_logo.jpg',
-              height: 120,
-              width: 120,
-            ),
+            Image.asset('assets/utkarsh_logo.jpg', height: 120, width: 120),
             const SizedBox(height: 24),
             const Text(
               'No Approved Enrollment Found',
@@ -120,10 +120,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
             const SizedBox(height: 16),
             const Text(
               'Your enrollment is still under review. Please wait for admin approval.',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey,
-              ),
+              style: TextStyle(fontSize: 16, color: Colors.grey),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
@@ -134,7 +131,10 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green[700],
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 12,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -172,11 +172,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
             ),
             child: Column(
               children: [
-                Image.asset(
-                  'assets/utkarsh_logo.jpg',
-                  height: 80,
-                  width: 80,
-                ),
+                Image.asset('assets/utkarsh_logo.jpg', height: 80, width: 80),
                 const SizedBox(height: 16),
                 Text(
                   'Welcome, ${_enrollmentData!['studentName']}!',
@@ -190,15 +186,15 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                 const SizedBox(height: 8),
                 Text(
                   'Course: ${_enrollmentData!['course']}',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    color: Colors.grey,
-                  ),
+                  style: const TextStyle(fontSize: 18, color: Colors.grey),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.green.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(20),
@@ -210,6 +206,186 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Quick Actions Section
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.9),
+              borderRadius: BorderRadius.circular(15),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 5),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.flash_on, color: Colors.orange),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Quick Actions',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.orange,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => _showCourseMaterials(context),
+                        icon: const Icon(Icons.book),
+                        label: const Text('Materials'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue[700],
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => _showAssignments(context),
+                        icon: const Icon(Icons.assignment),
+                        label: const Text('Assignments'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange[700],
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => _showDescriptiveExams(context),
+                        icon: const Icon(Icons.picture_as_pdf),
+                        label: const Text('Descriptive Exams'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red[700],
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => _showMCQTests(context),
+                        icon: const Icon(Icons.quiz),
+                        label: const Text('MCQ Tests'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.purple[700],
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => _showMyResults(context),
+                        icon: const Icon(Icons.analytics),
+                        label: const Text('My Results'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green[700],
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => _showProgress(context),
+                        icon: const Icon(Icons.trending_up),
+                        label: const Text('Progress'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.teal[700],
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => _showProgress(context),
+                        icon: const Icon(Icons.trending_up),
+                        label: const Text('Progress'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.purple[700],
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => _showOnlineClasses(context),
+                        icon: const Icon(Icons.video_call),
+                        label: const Text('Classes'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red[700],
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -236,6 +412,20 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                   Icons.assignment,
                   Colors.orange,
                   () => _showAssignments(context),
+                ),
+                _buildFeatureCard(
+                  context,
+                  'Descriptive Exams',
+                  Icons.picture_as_pdf,
+                  Colors.red,
+                  () => _showDescriptiveExams(context),
+                ),
+                _buildFeatureCard(
+                  context,
+                  'MCQ Tests',
+                  Icons.quiz,
+                  Colors.purple,
+                  () => _showMCQTests(context),
                 ),
                 _buildFeatureCard(
                   context,
@@ -303,11 +493,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                 color: color.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                icon,
-                size: 40,
-                color: color,
-              ),
+              child: Icon(icon, size: 40, color: color),
             ),
             const SizedBox(height: 12),
             Text(
@@ -330,76 +516,180 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.7,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.green[700],
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.book, color: Colors.white, size: 24),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'Course Materials',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+      builder:
+          (context) => Container(
+            height: MediaQuery.of(context).size.height * 0.8,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.green[700],
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(20),
                     ),
                   ),
-                  const Spacer(),
-                  IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white),
-                    onPressed: () => Navigator.pop(context),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.book, color: Colors.white, size: 24),
+                      const SizedBox(width: 12),
+                      const Text(
+                        'Course Materials',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.white),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+                Expanded(
+                  child: StreamBuilder<QuerySnapshot>(
+                    stream:
+                        FirebaseFirestore.instance
+                            .collection('content')
+                            .snapshots(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+
+                      if (snapshot.hasError) {
+                        return Center(child: Text('Error: ${snapshot.error}'));
+                      }
+
+                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                        return const Center(
+                          child: Text(
+                            'No course materials available yet',
+                            style: TextStyle(fontSize: 18, color: Colors.grey),
+                          ),
+                        );
+                      }
+
+                      final items =
+                          snapshot.data!.docs
+                              .map(
+                                (doc) => ContentItem.fromMap(
+                                  doc.data() as Map<String, dynamic>,
+                                  doc.id,
+                                ),
+                              )
+                              .where(
+                                (c) =>
+                                    c.isActive && c.type == ContentType.notes,
+                              )
+                              .where((c) {
+                                // For now, show all content since we don't have targetStandards in new model
+                                // TODO: Implement proper filtering based on standard and board
+                                return true;
+                              })
+                              .toList()
+                            ..sort(
+                              (a, b) => b.uploadDate.compareTo(a.uploadDate),
+                            );
+
+                      if (items.isEmpty) {
+                        return const Center(
+                          child: Text(
+                            'No course materials available yet',
+                            style: TextStyle(fontSize: 18, color: Colors.grey),
+                          ),
+                        );
+                      }
+
+                      return ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: items.length,
+                        itemBuilder:
+                            (context, index) =>
+                                _buildMaterialCard(items[index]),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  _buildMaterialCard('Chapter 1: Introduction', 'PDF', '2.5 MB'),
-                  _buildMaterialCard('Chapter 2: Basic Concepts', 'PDF', '3.1 MB'),
-                  _buildMaterialCard('Practice Problems Set 1', 'PDF', '1.8 MB'),
-                  _buildMaterialCard('Video Lecture 1', 'MP4', '45.2 MB'),
-                  _buildMaterialCard('Quiz 1', 'Online', '15 min'),
-                ],
-              ),
+          ),
+    );
+  }
+
+  Widget _buildMaterialCard(ContentItem content) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: ListTile(
+        leading: Icon(_getFileIcon(content.fileType), color: Colors.green),
+        title: Text(content.title),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(content.description),
+            Text(
+              '${content.fileType.toUpperCase()} • ${_formatFileSize(content.fileSize)}',
             ),
+            Text('Uploaded: ${_formatDate(content.uploadDate)}'),
           ],
+        ),
+        trailing: IconButton(
+          icon: const Icon(Icons.visibility),
+          onPressed: () => _viewContent(content),
+          tooltip: 'View Content',
         ),
       ),
     );
   }
 
-  Widget _buildMaterialCard(String title, String type, String size) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: ListTile(
-        leading: Icon(
-          type == 'PDF' ? Icons.picture_as_pdf : type == 'MP4' ? Icons.video_file : Icons.quiz,
-          color: Colors.green,
-        ),
-        title: Text(title),
-        subtitle: Text('$type • $size'),
-        trailing: IconButton(
-          icon: const Icon(Icons.download),
-          onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Downloading $title...')),
-            );
-          },
-        ),
+  IconData _getFileIcon(String fileType) {
+    switch (fileType.toLowerCase()) {
+      case 'pdf':
+        return Icons.picture_as_pdf;
+      case 'doc':
+      case 'docx':
+        return Icons.description;
+      case 'mp4':
+      case 'avi':
+      case 'mov':
+        return Icons.video_file;
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+        return Icons.image;
+      default:
+        return Icons.insert_drive_file;
+    }
+  }
+
+  String _formatFileSize(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    if (bytes < 1024 * 1024 * 1024)
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day}/${date.month}/${date.year}';
+  }
+
+  void _viewContent(ContentItem content) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder:
+            (_) => ContentViewerScreen(
+              title: content.title,
+              fileUrl: content.fileUrl,
+              fileType: content.fileType,
+            ),
       ),
     );
   }
@@ -409,78 +699,169 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.7,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.orange[700],
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.assignment, color: Colors.white, size: 24),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'Assignments',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+      builder:
+          (context) => Container(
+            height: MediaQuery.of(context).size.height * 0.8,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.orange[700],
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(20),
                     ),
                   ),
-                  const Spacer(),
-                  IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white),
-                    onPressed: () => Navigator.pop(context),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.assignment,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                      const SizedBox(width: 12),
+                      const Text(
+                        'Assignments',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.white),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+                Expanded(
+                  child: StreamBuilder<QuerySnapshot>(
+                    stream:
+                        FirebaseFirestore.instance
+                            .collection('content')
+                            .snapshots(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+
+                      if (snapshot.hasError) {
+                        return Center(child: Text('Error: ${snapshot.error}'));
+                      }
+
+                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                        return const Center(
+                          child: Text(
+                            'No assignments available yet',
+                            style: TextStyle(fontSize: 18, color: Colors.grey),
+                          ),
+                        );
+                      }
+
+                      final items =
+                          snapshot.data!.docs
+                              .map(
+                                (doc) => ContentItem.fromMap(
+                                  doc.data() as Map<String, dynamic>,
+                                  doc.id,
+                                ),
+                              )
+                              .where(
+                                (c) =>
+                                    c.isActive &&
+                                    c.type == ContentType.assignment,
+                              )
+                              .where((c) {
+                                // For now, show all content since we don't have targetStandards in new model
+                                // TODO: Implement proper filtering based on standard and board
+                                return true;
+                              })
+                              .toList()
+                            ..sort(
+                              (a, b) => b.uploadDate.compareTo(a.uploadDate),
+                            );
+
+                      if (items.isEmpty) {
+                        return const Center(
+                          child: Text(
+                            'No assignments available yet',
+                            style: TextStyle(fontSize: 18, color: Colors.grey),
+                          ),
+                        );
+                      }
+
+                      return ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: items.length,
+                        itemBuilder:
+                            (context, index) =>
+                                _buildAssignmentCard(items[index]),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  _buildAssignmentCard('Assignment 1', 'Due: 15 Dec 2024', 'Not Submitted'),
-                  _buildAssignmentCard('Assignment 2', 'Due: 20 Dec 2024', 'Not Submitted'),
-                  _buildAssignmentCard('Assignment 3', 'Due: 25 Dec 2024', 'Not Submitted'),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+          ),
     );
   }
 
-  Widget _buildAssignmentCard(String title, String dueDate, String status) {
+  Widget _buildAssignmentCard(ContentItem content) {
+    final isOverdue =
+        content.dueDate != null && content.dueDate!.isBefore(DateTime.now());
+    final status = isOverdue ? 'Overdue' : 'Not Submitted';
+    final statusColor = isOverdue ? Colors.red : Colors.orange;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
         leading: Icon(
-          status == 'Submitted' ? Icons.check_circle : Icons.pending,
-          color: status == 'Submitted' ? Colors.green : Colors.orange,
+          isOverdue ? Icons.warning : Icons.pending,
+          color: statusColor,
         ),
-        title: Text(title),
-        subtitle: Text(dueDate),
-        trailing: Text(
-          status,
-          style: TextStyle(
-            color: status == 'Submitted' ? Colors.green : Colors.orange,
-            fontWeight: FontWeight.bold,
-          ),
+        title: Text(content.title),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(content.description),
+            if (content.dueDate != null)
+              Text(
+                'Due: ${_formatDate(content.dueDate!)}',
+                style: TextStyle(
+                  color: isOverdue ? Colors.red : Colors.grey[600],
+                  fontWeight: isOverdue ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+            Text(
+              '${content.fileType.toUpperCase()} • ${_formatFileSize(content.fileSize)}',
+            ),
+          ],
         ),
-        onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Opening $title...')),
-          );
-        },
+        trailing: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              status,
+              style: TextStyle(
+                color: statusColor,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.visibility),
+              onPressed: () => _viewContent(content),
+              tooltip: 'View Assignment',
+            ),
+          ],
+        ),
+        onTap: () => _viewContent(content),
       ),
     );
   }
@@ -488,24 +869,25 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
   void _showProgress(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Progress Tracking'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildProgressItem('Chapter 1', 85),
-            _buildProgressItem('Chapter 2', 60),
-            _buildProgressItem('Chapter 3', 30),
-            _buildProgressItem('Overall Progress', 58),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Progress Tracking'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildProgressItem('Chapter 1', 85),
+                _buildProgressItem('Chapter 2', 60),
+                _buildProgressItem('Chapter 3', 30),
+                _buildProgressItem('Overall Progress', 58),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Close'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
@@ -517,17 +899,18 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(title),
-              Text('$percentage%'),
-            ],
+            children: [Text(title), Text('$percentage%')],
           ),
           const SizedBox(height: 4),
           LinearProgressIndicator(
             value: percentage / 100,
             backgroundColor: Colors.grey[300],
             valueColor: AlwaysStoppedAnimation<Color>(
-              percentage >= 80 ? Colors.green : percentage >= 60 ? Colors.orange : Colors.red,
+              percentage >= 80
+                  ? Colors.green
+                  : percentage >= 60
+                  ? Colors.orange
+                  : Colors.red,
             ),
           ),
         ],
@@ -552,4 +935,1236 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
       const SnackBar(content: Text('Contact Teacher feature coming soon!')),
     );
   }
-} 
+
+  void _showMCQTests(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder:
+          (context) => Container(
+            height: MediaQuery.of(context).size.height * 0.8,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.purple[700],
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(20),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.quiz, color: Colors.white, size: 24),
+                      const SizedBox(width: 12),
+                      const Text(
+                        'MCQ Tests',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.white),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: StreamBuilder<QuerySnapshot>(
+                    stream:
+                        FirebaseFirestore.instance
+                            .collection('content')
+                            .where('type', isEqualTo: 'mcq')
+                            .snapshots(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+
+                      if (snapshot.hasError) {
+                        return Center(child: Text('Error: ${snapshot.error}'));
+                      }
+
+                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                        return const Center(
+                          child: Text(
+                            'No MCQ tests available yet',
+                            style: TextStyle(fontSize: 18, color: Colors.grey),
+                          ),
+                        );
+                      }
+
+                      // Get student's standard from enrollment data
+                      final studentStandard =
+                          _enrollmentData?['course'] as String? ?? '';
+
+                      final items =
+                          snapshot.data!.docs
+                              .map((doc) {
+                                final data = doc.data() as Map<String, dynamic>;
+                                data['id'] = doc.id;
+                                return data;
+                              })
+                              .where((test) {
+                                // Filter by student's standard and active status
+                                final testStandard =
+                                    test['standard'] as String? ?? '';
+                                final targetStandards = List<String>.from(
+                                  test['targetStandards'] ?? [],
+                                );
+                                final isActive =
+                                    test['isActive'] as bool? ?? true;
+                                return isActive &&
+                                    (testStandard == studentStandard ||
+                                        targetStandards.contains(
+                                          studentStandard,
+                                        ));
+                              })
+                              .toList()
+                            ..sort((a, b) {
+                              final aDate =
+                                  (a['uploadDate'] as Timestamp?)?.toDate() ??
+                                  DateTime(1970);
+                              final bDate =
+                                  (b['uploadDate'] as Timestamp?)?.toDate() ??
+                                  DateTime(1970);
+                              return bDate.compareTo(aDate);
+                            });
+
+                      if (items.isEmpty) {
+                        return Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.quiz,
+                                size: 80,
+                                color: Colors.grey[400],
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'No MCQ tests available for your standard',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  color: Colors.grey[600],
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Standard: $studentStandard',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey[500],
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+
+                      return ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: items.length,
+                        itemBuilder:
+                            (context, index) => _buildMCQTestCard(items[index]),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+    );
+  }
+
+  Widget _buildMCQTestCard(Map<String, dynamic> test) {
+    final questions = List<Map<String, dynamic>>.from(test['questions'] ?? []);
+    final totalMarks = questions.fold(
+      0,
+      (sum, q) => sum + (q['marks'] as int? ?? 0),
+    );
+    final timeLimit = test['timeLimit'] as int?;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: ListTile(
+        leading: Icon(Icons.quiz, color: Colors.purple[700], size: 32),
+        title: Text(
+          test['title'] ?? 'Untitled Test',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(test['description'] ?? ''),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Icon(Icons.quiz, size: 16, color: Colors.grey[600]),
+                const SizedBox(width: 4),
+                Text(
+                  '${questions.length} questions',
+                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                ),
+                const SizedBox(width: 16),
+                Icon(Icons.star, size: 16, color: Colors.amber[600]),
+                const SizedBox(width: 4),
+                Text(
+                  '$totalMarks marks',
+                  style: TextStyle(color: Colors.amber[700], fontSize: 12),
+                ),
+                if (timeLimit != null) ...[
+                  const SizedBox(width: 16),
+                  Icon(Icons.timer, size: 16, color: Colors.grey[600]),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${timeLimit} min',
+                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Subject: ${test['subject'] ?? 'N/A'}',
+              style: TextStyle(color: Colors.grey[500], fontSize: 12),
+            ),
+            Text(
+              'Uploaded: ${_formatDate((test['uploadDate'] as Timestamp?)?.toDate() ?? DateTime.now())}',
+              style: TextStyle(color: Colors.grey[500], fontSize: 12),
+            ),
+          ],
+        ),
+        trailing: ElevatedButton(
+          onPressed: () => _startMCQTest(test),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.purple[700],
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          ),
+          child: const Text('Start Test'),
+        ),
+      ),
+    );
+  }
+
+  void _startMCQTest(Map<String, dynamic> test) {
+    print('Starting MCQ test with data: $test');
+    print('Test ID: ${test['id']}');
+    print('Test Title: ${test['title']}');
+    print('Test Standard: ${test['standard']}');
+    print('Test Board: ${test['board']}');
+    print('Test Subject: ${test['subject']}');
+    print('Questions count: ${(test['questions'] as List?)?.length ?? 0}');
+    print('Test data type: ${test.runtimeType}');
+    print('Standard field type: ${test['standard'].runtimeType}');
+    print('Board field type: ${test['board'].runtimeType}');
+
+    Navigator.of(context).pop(); // Close the bottom sheet
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => MCQTestScreen(testData: test)),
+    );
+  }
+
+  void _showDescriptiveExams(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder:
+          (context) => Container(
+            height: MediaQuery.of(context).size.height * 0.8,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.red[700],
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(20),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.picture_as_pdf,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                      const SizedBox(width: 12),
+                      const Text(
+                        'Descriptive Exams',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.white),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: StreamBuilder<QuerySnapshot>(
+                    stream:
+                        FirebaseFirestore.instance
+                            .collection('content')
+                            .where('isDescriptiveExam', isEqualTo: true)
+                            .snapshots(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+
+                      if (snapshot.hasError) {
+                        return Center(child: Text('Error: ${snapshot.error}'));
+                      }
+
+                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                        return const Center(
+                          child: Text(
+                            'No descriptive exams available yet',
+                            style: TextStyle(fontSize: 18, color: Colors.grey),
+                          ),
+                        );
+                      }
+
+                      // Get student's standard from enrollment data
+                      final studentStandard =
+                          _enrollmentData?['course'] as String? ?? '';
+
+                      final items =
+                          snapshot.data!.docs
+                              .map(
+                                (doc) => ContentItem.fromMap(
+                                  doc.data() as Map<String, dynamic>,
+                                  doc.id,
+                                ),
+                              )
+                              .where((c) {
+                                // Filter by student's standard and active status - only show exams for their standard
+                                final examStandard =
+                                    c.standard.standardDisplayName;
+                                return c.isActive &&
+                                    (examStandard == studentStandard ||
+                                        c.targetStandards.contains(
+                                          studentStandard,
+                                        ));
+                              })
+                              .toList()
+                            ..sort(
+                              (a, b) => b.uploadDate.compareTo(a.uploadDate),
+                            );
+
+                      if (items.isEmpty) {
+                        return Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.picture_as_pdf,
+                                size: 80,
+                                color: Colors.grey[400],
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'No descriptive exams available for your standard',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  color: Colors.grey[600],
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Standard: $studentStandard',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey[500],
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+
+                      return ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: items.length,
+                        itemBuilder:
+                            (context, index) =>
+                                _buildDescriptiveExamCard(items[index]),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+    );
+  }
+
+  Widget _buildDescriptiveExamCard(ContentItem content) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: ListTile(
+        leading: Icon(Icons.picture_as_pdf, color: Colors.red[700], size: 32),
+        title: Text(
+          content.title,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(content.description),
+            const SizedBox(height: 4),
+            Text(
+              'PDF • ${_formatFileSize(content.fileSize)}',
+              style: TextStyle(color: Colors.grey[600], fontSize: 12),
+            ),
+            Text(
+              'Uploaded: ${_formatDate(content.uploadDate)}',
+              style: TextStyle(color: Colors.grey[500], fontSize: 12),
+            ),
+            if (content.targetStandards.isNotEmpty)
+              Text(
+                'For: ${content.targetStandards.join(", ")}',
+                style: TextStyle(
+                  color: Colors.green[700],
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+          ],
+        ),
+        trailing: IconButton(
+          icon: const Icon(Icons.visibility),
+          onPressed: () => _viewContent(content),
+          tooltip: 'View PDF Exam',
+        ),
+        onTap: () => _viewContent(content),
+      ),
+    );
+  }
+
+  void _showMyResults(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder:
+          (context) => Container(
+            height: MediaQuery.of(context).size.height * 0.8,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.green[700],
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(20),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.analytics,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                      const SizedBox(width: 12),
+                      const Text(
+                        'My Test Results',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(Icons.refresh, color: Colors.white),
+                        onPressed: () {
+                          // Force refresh by rebuilding the widget
+                          setState(() {});
+                        },
+                        tooltip: 'Refresh Results',
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.white),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                ),
+                // Filter Dropdown
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.filter_list, color: Colors.grey),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Filter by:',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          value: _selectedResultType,
+                          decoration: const InputDecoration(
+                            labelText: 'Result Type',
+                            border: OutlineInputBorder(),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                          ),
+                          items: const [
+                            DropdownMenuItem(
+                              value: 'All Results',
+                              child: Text('All Results'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'MCQ',
+                              child: Text('MCQ Tests'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'Descriptive',
+                              child: Text('Descriptive Exams'),
+                            ),
+                          ],
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedResultType = value ?? 'All Results';
+                            });
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: StreamBuilder<QuerySnapshot>(
+                    stream:
+                        FirebaseFirestore.instance
+                            .collection('test_results')
+                            .where(
+                              'studentEmail',
+                              isEqualTo: _enrollmentData?['email'],
+                            )
+                            .snapshots(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+
+                      if (snapshot.hasError) {
+                        return Center(child: Text('Error: ${snapshot.error}'));
+                      }
+
+                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                        return const Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.analytics,
+                                size: 80,
+                                color: Colors.grey,
+                              ),
+                              SizedBox(height: 16),
+                              Text(
+                                'No test results found',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                'Take some MCQ tests to see your results here',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+
+                      final allResults =
+                          snapshot.data!.docs.map((doc) {
+                              final data = doc.data() as Map<String, dynamic>;
+                              data['id'] = doc.id;
+                              return data;
+                            }).toList()
+                            ..sort((a, b) {
+                              // Sort by submission date in code
+                              final aDate =
+                                  (a['submittedAt'] as Timestamp?)?.toDate() ??
+                                  DateTime(1970);
+                              final bDate =
+                                  (b['submittedAt'] as Timestamp?)?.toDate() ??
+                                  DateTime(1970);
+                              return bDate.compareTo(aDate);
+                            });
+
+                      // Apply filtering based on selected type
+                      final filteredResults =
+                          allResults.where((result) {
+                            if (_selectedResultType == 'All Results') {
+                              return true;
+                            } else if (_selectedResultType == 'MCQ') {
+                              // Filter for MCQ results - check if it has questionDetails (MCQ specific)
+                              return result['questionDetails'] != null;
+                            } else if (_selectedResultType == 'Descriptive') {
+                              // Filter for Descriptive results - check if it doesn't have questionDetails
+                              // Note: Currently no descriptive exam results exist as they don't have submission system
+                              return result['questionDetails'] == null;
+                            }
+                            return true;
+                          }).toList();
+
+                      // Debug: Print student results count and filtering details
+                      print(
+                        'Student Results - Found ${allResults.length} total results, ${filteredResults.length} filtered results for ${_enrollmentData?['email']}',
+                      );
+                      print('Selected filter: $_selectedResultType');
+                      print(
+                        'All results types: ${allResults.map((r) => r['questionDetails'] != null ? 'MCQ' : 'Descriptive').toList()}',
+                      );
+
+                      if (filteredResults.isEmpty) {
+                        return Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                _selectedResultType == 'MCQ'
+                                    ? Icons.quiz
+                                    : _selectedResultType == 'Descriptive'
+                                    ? Icons.edit_note
+                                    : Icons.analytics,
+                                size: 80,
+                                color: Colors.grey,
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                _selectedResultType == 'MCQ'
+                                    ? 'No MCQ test results found'
+                                    : _selectedResultType == 'Descriptive'
+                                    ? 'No Descriptive exam results found'
+                                    : 'No test results found',
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                _selectedResultType == 'MCQ'
+                                    ? 'Take some MCQ tests to see your results here'
+                                    : _selectedResultType == 'Descriptive'
+                                    ? 'Descriptive exams are currently PDF-only. Results will appear here once submission system is implemented.'
+                                    : 'Take some tests to see your results here',
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+
+                      return ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: filteredResults.length,
+                        itemBuilder: (context, index) {
+                          return _buildMyResultCard(filteredResults[index]);
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+    );
+  }
+
+  Widget _buildMyResultCard(Map<String, dynamic> result) {
+    final score = result['score'] as int? ?? 0;
+    final totalMarks = result['totalMarks'] as int? ?? 1;
+    final percentage = result['percentage'] as int? ?? 0;
+    final submittedAt =
+        (result['submittedAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+    final timeTaken = result['timeTaken'] as int? ?? 0;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: _getScoreColor(percentage),
+          child: Text(
+            '$percentage%',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+            ),
+          ),
+        ),
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                result['testTitle'] ?? 'Unknown Test',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            // Test Type Badge
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color:
+                    result['questionDetails'] != null
+                        ? Colors.blue[100]
+                        : Colors.green[100],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color:
+                      result['questionDetails'] != null
+                          ? Colors.blue[300]!
+                          : Colors.green[300]!,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    result['questionDetails'] != null
+                        ? Icons.quiz
+                        : Icons.edit_note,
+                    size: 12,
+                    color:
+                        result['questionDetails'] != null
+                            ? Colors.blue[700]
+                            : Colors.green[700],
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    result['questionDetails'] != null ? 'MCQ' : 'Descriptive',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color:
+                          result['questionDetails'] != null
+                              ? Colors.blue[700]
+                              : Colors.green[700],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Icon(Icons.star, size: 16, color: Colors.amber[600]),
+                const SizedBox(width: 4),
+                Text('$score/$totalMarks marks'),
+                const SizedBox(width: 16),
+                Icon(Icons.timer, size: 16, color: Colors.grey[600]),
+                const SizedBox(width: 4),
+                Text('${timeTaken} min'),
+                const SizedBox(width: 16),
+                Icon(Icons.school, size: 16, color: Colors.grey[600]),
+                const SizedBox(width: 4),
+                Text(result['standard'] ?? 'N/A'),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Submitted: ${_formatDate(submittedAt)}',
+              style: TextStyle(color: Colors.grey[500], fontSize: 12),
+            ),
+          ],
+        ),
+        trailing: IconButton(
+          icon: const Icon(Icons.visibility, color: Colors.blue),
+          onPressed: () => _viewMyResultDetails(result),
+          tooltip: 'View Details',
+        ),
+      ),
+    );
+  }
+
+  Color _getScoreColor(int percentage) {
+    if (percentage >= 80) return Colors.green;
+    if (percentage >= 60) return Colors.orange;
+    return Colors.red;
+  }
+
+  void _viewMyResultDetails(Map<String, dynamic> result) {
+    showDialog(
+      context: context,
+      builder:
+          (context) => Dialog(
+            insetPadding: const EdgeInsets.all(20),
+            child: Container(
+              width: MediaQuery.of(context).size.width * 0.95,
+              height: MediaQuery.of(context).size.height * 0.9,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(15),
+                color: Colors.white,
+              ),
+              child: Column(
+                children: [
+                  // Header
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.green[700],
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(15),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.analytics,
+                          color: Colors.white,
+                          size: 28,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            result['testTitle'] ?? 'Test Result Details',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Colors.white),
+                          onPressed: () => Navigator.of(context).pop(),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Student Info
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.blue[50],
+                      border: Border(
+                        bottom: BorderSide(color: Colors.blue[200]!),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Student: ${result['studentEmail'] ?? 'Unknown'}',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Score: ${result['score']}/${result['totalMarks']} (${result['percentage']}%)',
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Subject: ${result['subject'] ?? 'N/A'}'),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Time Taken: ${result['timeTaken']} minutes',
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Submitted: ${_formatDate((result['submittedAt'] as Timestamp?)?.toDate() ?? DateTime.now())}',
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Questions and Answers
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Detailed Question Analysis:',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.green[700],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          if (result['questionDetails'] != null &&
+                              result['answers'] != null)
+                            ...((result['questionDetails']
+                                    as Map<String, dynamic>)
+                                .entries
+                                .map((entry) {
+                                  final questionIndex = int.parse(entry.key);
+                                  final questionData =
+                                      entry.value as Map<String, dynamic>;
+                                  final userAnswer =
+                                      result['answers'][entry.key] as String? ??
+                                      '';
+
+                                  return _buildDetailedQuestionCard(
+                                    questionIndex + 1,
+                                    questionData,
+                                    userAnswer,
+                                  );
+                                })
+                                .toList())
+                          else
+                            const Text('No detailed question data available'),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+    );
+  }
+
+  Widget _buildDetailedQuestionCard(
+    int questionNumber,
+    Map<String, dynamic> questionData,
+    String userAnswer,
+  ) {
+    final question = questionData['question'] as String? ?? '';
+    final options = questionData['options'] as Map<String, dynamic>? ?? {};
+    final correctAnswer = questionData['correctAnswer'] as String? ?? '';
+    final marks = questionData['marks'] as int? ?? 0;
+    final explanation = questionData['explanation'] as String? ?? '';
+
+    final isCorrect = userAnswer == correctAnswer;
+    final earnedMarks = isCorrect ? marks : 0;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 20),
+      elevation: 3,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: isCorrect ? Colors.green : Colors.red,
+          width: 2,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Question Header
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.blue[700],
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    'Question $questionNumber',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.amber[100],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.amber[300]!),
+                  ),
+                  child: Text(
+                    '${earnedMarks}/${marks} marks',
+                    style: TextStyle(
+                      color: Colors.amber[800],
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                Icon(
+                  isCorrect ? Icons.check_circle : Icons.cancel,
+                  color: isCorrect ? Colors.green : Colors.red,
+                  size: 24,
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Question Text
+            Text(
+              question,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Options
+            Text(
+              'Options:',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey[700],
+              ),
+            ),
+            const SizedBox(height: 8),
+            ...options.entries.map((entry) {
+              final optionKey = entry.key;
+              final optionText = entry.value as String;
+              final isUserAnswer = optionKey == userAnswer;
+              final isCorrectOption = optionKey == correctAnswer;
+
+              Color backgroundColor;
+              Color textColor;
+              IconData? icon;
+
+              if (isCorrectOption) {
+                backgroundColor = Colors.green[100]!;
+                textColor = Colors.green[800]!;
+                icon = Icons.check_circle;
+              } else if (isUserAnswer && !isCorrectOption) {
+                backgroundColor = Colors.red[100]!;
+                textColor = Colors.red[800]!;
+                icon = Icons.cancel;
+              } else {
+                backgroundColor = Colors.grey[100]!;
+                textColor = Colors.grey[800]!;
+              }
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: backgroundColor,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color:
+                        isCorrectOption
+                            ? Colors.green[300]!
+                            : Colors.grey[300]!,
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        color:
+                            isCorrectOption ? Colors.green : Colors.grey[400],
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
+                        child: Text(
+                          optionKey,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        optionText,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: textColor,
+                          fontWeight:
+                              isCorrectOption
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
+                        ),
+                      ),
+                    ),
+                    if (icon != null) Icon(icon, color: textColor, size: 20),
+                  ],
+                ),
+              );
+            }).toList(),
+
+            const SizedBox(height: 16),
+
+            // Answer Summary
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.blue[200]!),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.person, color: Colors.blue[600], size: 16),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Your Answer: $userAnswer',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue[800],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.check_circle,
+                        color: Colors.green[600],
+                        size: 16,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Correct Answer: $correctAnswer',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green[800],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            // Explanation
+            if (explanation.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.amber[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.amber[200]!),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.lightbulb,
+                          color: Colors.amber[600],
+                          size: 16,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Explanation:',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.amber[800],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      explanation,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.amber[800],
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}

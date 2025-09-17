@@ -22,89 +22,64 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> signInWithEmailPassword() async {
-    if (emailController.text.trim().isEmpty || passwordController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in all fields')),
-      );
-      return;
-    }
-
-    // Validate email format
-    if (!_isValidEmail(emailController.text.trim())) {
+    if (emailController.text.trim().isEmpty || passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please enter a valid email address (e.g., user@domain.com)'),
+          content: Text('Please fill in all fields'),
           backgroundColor: Colors.red,
         ),
       );
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
-
     try {
-      // Sign in with email and password
-      UserCredential userCredential = await FirebaseAuth.instance
-          .signInWithEmailAndPassword(
+      setState(() {
+        _isLoading = true;
+      });
+
+      final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: emailController.text.trim(),
-        password: passwordController.text.trim(),
+        password: passwordController.text,
       );
 
-             final user = userCredential.user;
-       if (user != null) {
-         // Check if email is verified (except for admin)
-         if (user.email != 'utkarshacademy20@gmail.com' && !user.emailVerified) {
-           // Send verification email again if not verified
-           await user.sendEmailVerification();
-           ScaffoldMessenger.of(context).showSnackBar(
-             const SnackBar(
-               content: Text('Please verify your email first. Check your inbox for verification link.'),
-               backgroundColor: Colors.orange,
-               duration: Duration(seconds: 5),
-             ),
-           );
-           return;
-         }
+      if (userCredential.user != null) {
+        // Check if user is admin/teacher
+        if (emailController.text.trim() == 'utkarshacademy20@gmail.com') {
+          // Admin/Teacher login
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Welcome Admin!'), backgroundColor: Colors.green),
+          );
+          if (context.mounted) {
+            Navigator.pushReplacementNamed(context, '/admin-dashboard');
+          }
+        } else {
+          // Check if user has approved enrollment
+          final enrollmentQuery = await FirebaseFirestore.instance
+              .collection('enrollments')
+              .where('parentUid', isEqualTo: userCredential.user!.uid)
+              .where('status', isEqualTo: 'approved')
+              .limit(1)
+              .get();
 
-         // Check if user is admin/teacher
-         if (user.email == 'utkarshacademy20@gmail.com') {
-           // Admin/Teacher login
-           ScaffoldMessenger.of(context).showSnackBar(
-             const SnackBar(content: Text('Welcome Admin!'), backgroundColor: Colors.green),
-           );
-           if (context.mounted) {
-             Navigator.pushReplacementNamed(context, '/admin-dashboard');
-           }
-         } else {
-           // Check if user has approved enrollment
-           final enrollmentQuery = await FirebaseFirestore.instance
-               .collection('enrollments')
-               .where('parentUid', isEqualTo: user.uid)
-               .where('status', isEqualTo: 'approved')
-               .limit(1)
-               .get();
-
-           if (enrollmentQuery.docs.isNotEmpty) {
-             // Student has approved enrollment
-             ScaffoldMessenger.of(context).showSnackBar(
-               const SnackBar(content: Text('Welcome Student!'), backgroundColor: Colors.green),
-             );
-             if (context.mounted) {
-               Navigator.pushReplacementNamed(context, '/student-dashboard');
-             }
-           } else {
-             // Regular user login
-             ScaffoldMessenger.of(context).showSnackBar(
-               const SnackBar(content: Text('Login successful!')),
-             );
-             if (context.mounted) {
-               Navigator.pushReplacementNamed(context, '/explore-more');
-             }
-           }
-         }
-       }
+          if (enrollmentQuery.docs.isNotEmpty) {
+            // Student has approved enrollment
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Welcome Student!'), backgroundColor: Colors.green),
+            );
+            if (context.mounted) {
+              Navigator.pushReplacementNamed(context, '/student-dashboard');
+            }
+          } else {
+            // Regular user login - redirect to explore page
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Login successful!')),
+            );
+            if (context.mounted) {
+              Navigator.pushReplacementNamed(context, '/explore-more');
+            }
+          }
+        }
+      }
     } on FirebaseAuthException catch (e) {
       String errorMessage = 'Login failed';
       if (e.code == 'user-not-found') {
@@ -250,7 +225,7 @@ class _LoginScreenState extends State<LoginScreen> {
                  Navigator.pushReplacementNamed(context, '/student-dashboard');
                }
              } else {
-               // Regular user login
+               // Regular user login - redirect to explore page
                ScaffoldMessenger.of(context).showSnackBar(
                  const SnackBar(content: Text('Signed in with Google!')),
                );

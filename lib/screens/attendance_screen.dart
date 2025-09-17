@@ -66,7 +66,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           .collection('enrollments')
           .where('status', isEqualTo: 'approved')
           .where('course', isEqualTo: _selectedCourse)
-          .orderBy('studentName')
           .get();
 
       final List<_Student> students = snapshot.docs.map((doc) {
@@ -77,7 +76,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           name: (data['studentName'] as String?) ?? 'Unknown',
           course: (data['course'] as String?) ?? '',
         );
-      }).where((s) => s.parentUid.isNotEmpty).toList();
+      }).where((s) => s.parentUid.isNotEmpty).toList()
+        ..sort((a, b) => a.name.compareTo(b.name));
 
       setState(() {
         _students = students;
@@ -144,7 +144,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
       for (final s in _students) {
         final String status = _statuses[s.parentUid] ?? 'present';
-        final String docId = '${_selectedCourse}_$_dateKey_${s.parentUid}';
+        final String docId = '${_selectedCourse}_$_dateKey${s.parentUid}';
         final DocumentReference docRef = _firestore.collection('attendance').doc(docId);
         batch.set(docRef, <String, dynamic>{
           'course': _selectedCourse,
@@ -190,6 +190,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         ),
         backgroundColor: Colors.green[700],
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: Stack(
         children: [
@@ -412,5 +416,3 @@ class _AttendanceStatus {
   final Color color;
   const _AttendanceStatus(this.key, this.label, this.color);
 }
-
-

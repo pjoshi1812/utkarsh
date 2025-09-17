@@ -8,6 +8,9 @@ import 'screens/explore_screen.dart';
 import 'screens/admin_dashboard_screen.dart';
 import 'screens/student_dashboard_screen.dart';
 import 'screens/attendance_screen.dart';
+import 'screens/content_management_screen.dart';
+import 'screens/attendance_data_screen.dart';
+import 'screens/admin_content_dashboard_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,7 +25,7 @@ class MainApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      initialRoute: '/login',
+      initialRoute: '/explore-more',
       routes: {
         '/login': (context) => const LoginScreen(),
         '/register': (context) => const RegisterScreen(),
@@ -31,6 +34,9 @@ class MainApp extends StatelessWidget {
         '/admin-dashboard': (context) => const AdminDashboardScreen(),
         '/student-dashboard': (context) => const StudentDashboardScreen(),
         '/attendance': (context) => const AttendanceScreen(),
+        '/content-management': (context) => const ContentManagementScreen(),
+        '/attendance-data': (context) => const AttendanceDataScreen(),
+        '/admin-content-dashboard': (context) => const AdminContentDashboardScreen(),
       },
     );
   }

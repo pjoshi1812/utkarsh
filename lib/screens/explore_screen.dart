@@ -69,18 +69,19 @@ class _ExploreScreenState extends State<ExploreScreen> {
   Future<void> _loadMedia() async {
     try {
       final QuerySnapshot querySnapshot =
-          await _firestore
-              .collection('media')
-              .orderBy('createdAt', descending: true)
-              .get();
+          await _firestore.collection('media').get();
 
       final List<MediaModel> mediaList =
           querySnapshot.docs.map((doc) {
-            return MediaModel.fromJson(
-              doc.data() as Map<String, dynamic>,
-              doc.id,
-            );
-          }).toList();
+              return MediaModel.fromJson(
+                doc.data() as Map<String, dynamic>,
+                doc.id,
+              );
+            }).toList()
+            ..sort((a, b) {
+              // Sort by creation date in code
+              return b.createdAt.compareTo(a.createdAt);
+            });
 
       setState(() {
         _mediaList = mediaList;
@@ -374,16 +375,17 @@ class _ExploreScreenState extends State<ExploreScreen> {
       backgroundColor: const Color(0xFFE8F5E9),
       appBar: AppBar(
         title: const Text(
-          'Explore',
+          'Utkarsh - Explore',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.green[700],
         elevation: 0,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.logout, color: Colors.white),
-            onPressed: _signOut,
-          ),
+          if (currentUser != null)
+            IconButton(
+              icon: const Icon(Icons.logout, color: Colors.white),
+              onPressed: _signOut,
+            ),
         ],
       ),
       body: Stack(
@@ -403,7 +405,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          // Welcome Section
+                          // Welcome Section with Login/Register
                           _buildWelcomeSection(),
                           const SizedBox(height: 20),
 
@@ -448,11 +450,11 @@ class _ExploreScreenState extends State<ExploreScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.9),
+        color: Colors.white.withOpacity(0.9),
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
+            color: Colors.black.withOpacity(0.1),
             blurRadius: 10,
             offset: const Offset(0, 5),
           ),
@@ -476,6 +478,107 @@ class _ExploreScreenState extends State<ExploreScreen> {
             style: TextStyle(fontSize: 16, color: Colors.grey),
             textAlign: TextAlign.center,
           ),
+          const SizedBox(height: 20),
+
+          // Show different content based on login status
+          if (currentUser == null) ...[
+            const Text(
+              'Get started by creating an account or logging in',
+              style: TextStyle(fontSize: 14, color: Colors.grey),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => Navigator.pushNamed(context, '/register'),
+                    icon: const Icon(Icons.person_add),
+                    label: const Text('Register'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green[700],
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => Navigator.pushNamed(context, '/login'),
+                    icon: const Icon(Icons.login),
+                    label: const Text('Login'),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: Colors.green[700]!),
+                      foregroundColor: Colors.green[700],
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ] else ...[
+            // Show user info and quick actions when logged in
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.green.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.green.withOpacity(0.3)),
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    'Welcome back, ${userData?['name'] ?? currentUser?.email ?? 'User'}!',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            if (userData?['role'] == 'admin') {
+                              Navigator.pushReplacementNamed(
+                                context,
+                                '/admin-dashboard',
+                              );
+                            } else {
+                              Navigator.pushReplacementNamed(
+                                context,
+                                '/student-dashboard',
+                              );
+                            }
+                          },
+                          icon: const Icon(Icons.dashboard),
+                          label: const Text('Go to Dashboard'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green[700],
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
