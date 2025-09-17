@@ -248,7 +248,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                   children: [
                     Expanded(
                       child: ElevatedButton.icon(
-                        onPressed: () => _showCourseMaterials(context),
+                        onPressed: () => _openNotesForEnrolledClass(context),
                         icon: const Icon(Icons.book),
                         label: const Text('Materials'),
                         style: ElevatedButton.styleFrom(
@@ -264,7 +264,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton.icon(
-                        onPressed: () => _showAssignments(context),
+                        onPressed: () => _openAssignmentsForEnrolledClass(context),
                         icon: const Icon(Icons.assignment),
                         label: const Text('Assignments'),
                         style: ElevatedButton.styleFrom(
@@ -404,14 +404,14 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                   'Course Materials',
                   Icons.book,
                   Colors.blue,
-                  () => _showCourseMaterials(context),
+                  () => _openNotesForEnrolledClass(context),
                 ),
                 _buildFeatureCard(
                   context,
                   'Assignments',
                   Icons.assignment,
                   Colors.orange,
-                  () => _showAssignments(context),
+                  () => _openAssignmentsForEnrolledClass(context),
                 ),
                 _buildFeatureCard(
                   context,
@@ -810,6 +810,42 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
             ),
           ),
     );
+  }
+
+  void _openAssignmentsForEnrolledClass(BuildContext context) {
+    if (_enrollmentData == null) return;
+    final course = (_enrollmentData!['course'] as String? ?? '').trim();
+    final Standard standard =
+        course == '12th' ? Standard.twelfth :
+        course == '11th' ? Standard.eleventh :
+        course == '10th' ? Standard.tenth :
+        course == '9th' ? Standard.ninth :
+        Standard.eighth;
+    final Board board = (standard == Standard.eleventh || standard == Standard.twelfth)
+        ? Board.hsc
+        : Board.cbse;
+    Navigator.pushNamed(context, '/student-assignments', arguments: {
+      'standard': standard,
+      'board': board,
+    });
+  }
+
+  void _openNotesForEnrolledClass(BuildContext context) {
+    if (_enrollmentData == null) return;
+    final course = (_enrollmentData!['course'] as String? ?? '').trim();
+    final Standard standard =
+        course == '12th' ? Standard.twelfth :
+        course == '11th' ? Standard.eleventh :
+        course == '10th' ? Standard.tenth :
+        course == '9th' ? Standard.ninth :
+        Standard.eighth;
+    final Board board = (standard == Standard.eleventh || standard == Standard.twelfth)
+        ? Board.hsc
+        : Board.cbse;
+    Navigator.pushNamed(context, '/student-notes', arguments: {
+      'standard': standard,
+      'board': board,
+    });
   }
 
   Widget _buildAssignmentCard(ContentItem content) {

@@ -11,6 +11,9 @@ import 'screens/attendance_screen.dart';
 import 'screens/content_management_screen.dart';
 import 'screens/attendance_data_screen.dart';
 import 'screens/admin_content_dashboard_screen.dart';
+import 'screens/student_notes_screen.dart';
+import 'screens/student_assignments_screen.dart';
+import 'models/content_model.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,6 +40,29 @@ class MainApp extends StatelessWidget {
         '/content-management': (context) => const ContentManagementScreen(),
         '/attendance-data': (context) => const AttendanceDataScreen(),
         '/admin-content-dashboard': (context) => const AdminContentDashboardScreen(),
+      },
+      onGenerateRoute: (settings) {
+        if (settings.name == '/student-notes') {
+          final args = settings.arguments as Map<String, dynamic>?;
+          final Standard? standard = args?['standard'] as Standard?;
+          final Board? board = args?['board'] as Board?;
+          if (standard != null && board != null) {
+            return MaterialPageRoute(
+              builder: (_) => StudentNotesScreen(standard: standard, board: board),
+            );
+          }
+        }
+        if (settings.name == '/student-assignments') {
+          final args = settings.arguments as Map<String, dynamic>?;
+          final Standard? standard = args?['standard'] as Standard?;
+          final Board? board = args?['board'] as Board?;
+          if (standard != null && board != null) {
+            return MaterialPageRoute(
+              builder: (_) => StudentAssignmentsScreen(standard: standard, board: board),
+            );
+          }
+        }
+        return null;
       },
     );
   }

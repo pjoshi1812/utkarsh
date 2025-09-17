@@ -105,6 +105,37 @@ class ContentItem {
   });
 
   factory ContentItem.fromMap(Map<String, dynamic> map, String id) {
+    String _readString(Map<String, dynamic> m, String key) {
+      final v = m[key];
+      return v is String ? v : '';
+    }
+
+    Standard _parseStandard(String raw) {
+      if (raw.isEmpty) return Standard.eighth;
+      // Try enum name match (e.g., 'eighth')
+      for (final e in Standard.values) {
+        if (e.name == raw) return e;
+      }
+      // Try display name match (e.g., '8th')
+      for (final e in Standard.values) {
+        if (e.standardDisplayName == raw) return e;
+      }
+      return Standard.eighth;
+    }
+
+    Board _parseBoard(String raw) {
+      if (raw.isEmpty) return Board.cbse;
+      // Try enum name match (e.g., 'cbse')
+      for (final e in Board.values) {
+        if (e.name == raw) return e;
+      }
+      // Try display name match (e.g., 'CBSE')
+      for (final e in Board.values) {
+        if (e.boardDisplayName == raw) return e;
+      }
+      return Board.cbse;
+    }
+
     return ContentItem(
       id: id,
       title: map['title'] ?? '',
@@ -127,14 +158,8 @@ class ContentItem {
               ? (map['dueDate'] as Timestamp).toDate()
               : null,
       subject: map['subject'] as String?,
-      standard: Standard.values.firstWhere(
-        (e) => e.name == map['standard'],
-        orElse: () => Standard.eighth,
-      ),
-      board: Board.values.firstWhere(
-        (e) => e.name == map['board'],
-        orElse: () => Board.cbse,
-      ),
+      standard: _parseStandard(_readString(map, 'standard')),
+      board: _parseBoard(_readString(map, 'board')),
       chapterNumber: map['chapterNumber'] ?? '',
       chapterName: map['chapterName'] ?? '',
       tags: List<String>.from(map['tags'] ?? []),
