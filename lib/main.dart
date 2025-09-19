@@ -7,6 +7,7 @@ import 'screens/student_enrollment_screen.dart';
 import 'screens/explore_screen.dart';
 import 'screens/admin_dashboard_screen.dart';
 import 'screens/student_dashboard_screen.dart';
+import 'screens/admin_results_screen.dart';
 import 'screens/attendance_screen.dart';
 import 'screens/content_management_screen.dart';
 import 'screens/attendance_data_screen.dart';
@@ -40,6 +41,7 @@ class MainApp extends StatelessWidget {
         '/content-management': (context) => const ContentManagementScreen(),
         '/attendance-data': (context) => const AttendanceDataScreen(),
         '/admin-content-dashboard': (context) => const AdminContentDashboardScreen(),
+        '/admin-results': (context) => const AdminResultsScreen(),
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/student-notes') {

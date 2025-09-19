@@ -352,24 +352,9 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                   ],
                 ),
                 const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () => _showProgress(context),
-                        icon: const Icon(Icons.trending_up),
-                        label: const Text('Progress'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.purple[700],
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
+                 Row(
+                 children: [
+                    
                     Expanded(
                       child: ElevatedButton.icon(
                         onPressed: () => _showOnlineClasses(context),
@@ -384,7 +369,37 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                           ),
                         ),
                       ),
-                    ),
+                    ),const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => _showOnlineClasses(context),
+                        icon: const Icon(Icons.video_call),
+                        label: const Text('Contact Teacher'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red[700],
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                    ),const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => _showOnlineClasses(context),
+                        icon: const Icon(Icons.video_call),
+                        label: const Text('Branch Details'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red[700],
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                    ),const SizedBox(width: 12),
                   ],
                 ),
               ],
@@ -1502,7 +1517,17 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                           onChanged: (value) {
                             setState(() {
                               _selectedResultType = value ?? 'All Results';
+                              // Force immediate rebuild of the StreamBuilder
+                              // by triggering a rebuild of the parent widget
                             });
+                            // Close and reopen the bottom sheet to apply filter immediately
+                            if (Navigator.canPop(context)) {
+                              Navigator.pop(context);
+                              // Small delay to ensure smooth transition
+                              Future.delayed(const Duration(milliseconds: 100), () {
+                                _showMyResults(context);
+                              });
+                            }
                           },
                         ),
                       ),
@@ -1582,12 +1607,24 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                             if (_selectedResultType == 'All Results') {
                               return true;
                             } else if (_selectedResultType == 'MCQ') {
-                              // Filter for MCQ results - check if it has questionDetails (MCQ specific)
-                              return result['questionDetails'] != null;
+                              // Filter for MCQ results
+                              // Check for the test type field first, then fall back to checking questionDetails
+                              final testType = result['testType'];
+                              if (testType != null) {
+                                return testType.toString().toLowerCase() == 'mcq';
+                              } else {
+                                // Legacy check - if testType is not available
+                                return result['questionDetails'] != null;
+                              }
                             } else if (_selectedResultType == 'Descriptive') {
-                              // Filter for Descriptive results - check if it doesn't have questionDetails
-                              // Note: Currently no descriptive exam results exist as they don't have submission system
-                              return result['questionDetails'] == null;
+                              // Filter for Descriptive results
+                              final testType = result['testType'];
+                              if (testType != null) {
+                                return testType.toString().toLowerCase() == 'descriptive';
+                              } else {
+                                // Legacy check - if testType is not available
+                                return result['questionDetails'] == null;
+                              }
                             }
                             return true;
                           }).toList();
@@ -1598,7 +1635,10 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                       );
                       print('Selected filter: $_selectedResultType');
                       print(
-                        'All results types: ${allResults.map((r) => r['questionDetails'] != null ? 'MCQ' : 'Descriptive').toList()}',
+                        'All results types: ${allResults.map((r) => {
+                          'type': r['testType'] ?? (r['questionDetails'] != null ? 'MCQ' : 'Descriptive'),
+                          'hasQuestionDetails': r['questionDetails'] != null
+                        }).toList()}',
                       );
 
                       if (filteredResults.isEmpty) {
@@ -1695,41 +1735,29 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color:
-                    result['questionDetails'] != null
-                        ? Colors.blue[100]
-                        : Colors.green[100],
+                color: _getTestTypeColor(result),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color:
-                      result['questionDetails'] != null
-                          ? Colors.blue[300]!
-                          : Colors.green[300]!,
+                  color: _getTestTypeColor(result)?.withOpacity(0.7) ?? Colors.grey,
                 ),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    result['questionDetails'] != null
+                    _getTestTypeText(result).toLowerCase() == 'mcq'
                         ? Icons.quiz
                         : Icons.edit_note,
                     size: 12,
-                    color:
-                        result['questionDetails'] != null
-                            ? Colors.blue[700]
-                            : Colors.green[700],
+                    color: _getTestTypeTextColor(result),
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    result['questionDetails'] != null ? 'MCQ' : 'Descriptive',
+                    _getTestTypeText(result),
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
-                      color:
-                          result['questionDetails'] != null
-                              ? Colors.blue[700]
-                              : Colors.green[700],
+                      color: _getTestTypeTextColor(result),
                     ),
                   ),
                 ],
@@ -1776,6 +1804,42 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
     if (percentage >= 80) return Colors.green;
     if (percentage >= 60) return Colors.orange;
     return Colors.red;
+  }
+  
+  // Helper methods for test type display
+  String _getTestTypeText(Map<String, dynamic> result) {
+    final testType = result['testType'];
+    if (testType != null) {
+      return testType.toString();
+    }
+    // Legacy fallback
+    return result['questionDetails'] != null ? 'MCQ' : 'Descriptive';
+  }
+  
+  Color? _getTestTypeColor(Map<String, dynamic> result) {
+    final testType = result['testType'];
+    if (testType != null) {
+      if (testType.toString().toLowerCase() == 'mcq') {
+        return Colors.blue[100];
+      } else if (testType.toString().toLowerCase() == 'descriptive') {
+        return Colors.green[100];
+      }
+    }
+    // Legacy fallback
+    return result['questionDetails'] != null ? Colors.blue[100] : Colors.green[100];
+  }
+  
+  Color? _getTestTypeTextColor(Map<String, dynamic> result) {
+    final testType = result['testType'];
+    if (testType != null) {
+      if (testType.toString().toLowerCase() == 'mcq') {
+        return Colors.blue[700];
+      } else if (testType.toString().toLowerCase() == 'descriptive') {
+        return Colors.green[700];
+      }
+    }
+    // Legacy fallback
+    return result['questionDetails'] != null ? Colors.blue[700] : Colors.green[700];
   }
 
   void _viewMyResultDetails(Map<String, dynamic> result) {

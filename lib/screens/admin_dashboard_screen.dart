@@ -134,16 +134,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                         ),
                         _buildFeatureCard(
                           context,
-                          'MCQ Results',
+                          'Results',
                           Icons.quiz,
                           Colors.indigo,
                           () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder:
-                                    (context) => const AdminMCQResultsScreen(),
-                              ),
-                            );
+                            Navigator.of(context).pushNamed('/admin-results');
                           },
                         ),
                         _buildFeatureCard(
