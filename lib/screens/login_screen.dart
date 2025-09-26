@@ -143,13 +143,10 @@ class _LoginScreenState extends State<LoginScreen> {
             return; // User cancelled
           }
 
-          print('Google Sign-In Account: ${googleUser.email}');
 
           // Get authentication details
           final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
           
-          print('Google Auth - Access Token: ${googleAuth.accessToken != null ? 'Present' : 'Missing'}');
-          print('Google Auth - ID Token: ${googleAuth.idToken != null ? 'Present' : 'Missing'}');
           
           // Create Firebase credential
         final OAuthCredential credential = GoogleAuthProvider.credential(
@@ -162,9 +159,7 @@ class _LoginScreenState extends State<LoginScreen> {
           credential,
         );
           
-          print('Firebase Auth successful');
         } catch (e) {
-          print('Google Sign-In Error: $e');
           rethrow;
         }
       }
@@ -172,8 +167,6 @@ class _LoginScreenState extends State<LoginScreen> {
       // Store user info in Firestore if new
       final user = userCredential.user;
       if (user != null) {
-           // Debug: Print user info
-           print('Google Sign-in successful for: ${user.email}');
            
         final userDoc = FirebaseFirestore.instance
             .collection('users')
@@ -189,13 +182,11 @@ class _LoginScreenState extends State<LoginScreen> {
             'role': 'parent', // Default role, adjust as needed
                'emailVerified': user.emailVerified,
              });
-             print('New user created in Firestore');
            } else {
              // Update email verification status
              await userDoc.update({
                'emailVerified': user.emailVerified,
              });
-             print('Existing user found in Firestore');
            }
            
            // Check if user is admin/teacher
@@ -238,7 +229,6 @@ class _LoginScreenState extends State<LoginScreen> {
            throw Exception('Failed to get user from Firebase Auth');
          }
     } on FirebaseAuthException catch (e) {
-      print('Firebase Auth Error: ${e.code} - ${e.message}');
       String errorMessage = 'Google sign-in failed';
       if (e.code == 'account-exists-with-different-credential') {
         errorMessage = 'An account already exists with the same email address but different sign-in credentials.';
@@ -257,7 +247,6 @@ class _LoginScreenState extends State<LoginScreen> {
         SnackBar(content: Text(errorMessage), backgroundColor: Colors.red),
       );
     } catch (e) {
-      print('General Error: $e');
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Google sign-in failed: $e'), backgroundColor: Colors.red));
@@ -294,9 +283,7 @@ class _LoginScreenState extends State<LoginScreen> {
       // Get current user
       final user = FirebaseAuth.instance.currentUser;
       if (user != null && user.email == emailController.text.trim()) {
-        print('Resending verification email to: ${user.email}');
         await user.sendEmailVerification();
-        print('Verification email resent successfully');
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -370,12 +357,10 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     try {
-      print('Sending password reset email to: ${emailController.text.trim()}');
       await FirebaseAuth.instance.sendPasswordResetEmail(
         email: emailController.text.trim(),
       );
       
-      print('Password reset email sent successfully');
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

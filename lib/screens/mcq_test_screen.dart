@@ -26,17 +26,11 @@ class _MCQTestScreenState extends State<MCQTestScreen> {
 
   Future<void> _testFirebaseConnection() async {
     try {
-      print('Testing Firebase connection...');
-      final testDoc =
-          await FirebaseFirestore.instance
-              .collection('test_results')
-              .limit(1)
-              .get();
-      print(
-        'Firebase connection test successful. Found ${testDoc.docs.length} existing results.',
-      );
+      await FirebaseFirestore.instance
+          .collection('test_results')
+          .limit(1)
+          .get();
     } catch (e) {
-      print('Firebase connection test failed: $e');
     }
   }
 
@@ -55,13 +49,6 @@ class _MCQTestScreenState extends State<MCQTestScreen> {
 
   Future<void> _loadTest() async {
     try {
-      print('Loading MCQ test with data: ${widget.testData}');
-      print('Test ID: ${widget.testData['id']}');
-      print('Test Title: ${widget.testData['title']}');
-      print('Test Standard: ${widget.testData['standard']}');
-      print('Test Board: ${widget.testData['board']}');
-      print('Test Subject: ${widget.testData['subject']}');
-
       setState(() {
         _isLoading = true;
       });
@@ -70,11 +57,6 @@ class _MCQTestScreenState extends State<MCQTestScreen> {
       final questions = List<Map<String, dynamic>>.from(
         widget.testData['questions'] ?? [],
       );
-
-      print('Loaded ${questions.length} questions');
-      for (int i = 0; i < questions.length; i++) {
-        print('Question $i: ${questions[i]}');
-      }
 
       setState(() {
         _questions = questions;
@@ -86,8 +68,6 @@ class _MCQTestScreenState extends State<MCQTestScreen> {
         _startTime = DateTime.now();
       });
 
-      print('Total marks calculated: $_totalMarks');
-
       // Start timer if time limit is set
       final timeLimit = widget.testData['timeLimit'] as int?;
       if (timeLimit != null) {
@@ -95,7 +75,6 @@ class _MCQTestScreenState extends State<MCQTestScreen> {
         _startTimer();
       }
     } catch (e) {
-      print('Error loading test: $e');
       setState(() {
         _isLoading = false;
       });
@@ -154,7 +133,6 @@ class _MCQTestScreenState extends State<MCQTestScreen> {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
-        print('Error: No authenticated user');
         return;
       }
 
@@ -211,27 +189,9 @@ class _MCQTestScreenState extends State<MCQTestScreen> {
         'subject': widget.testData['subject']?.toString() ?? '',
       };
 
-      print('Saving result data: $resultData');
-      print('testStandard being saved: ${resultData['testStandard']}');
-      print('testBoard being saved: ${resultData['testBoard']}');
-      print('studentEmail being saved: ${resultData['studentEmail']}');
-
-      final docRef = await FirebaseFirestore.instance
+      await FirebaseFirestore.instance
           .collection('test_results')
           .add(resultData);
-
-      // Debug: Print the saved result
-      print('Test result saved with ID: ${docRef.id}');
-      print('Result data: $resultData');
-
-      // Verify the result was saved by reading it back
-      final savedDoc = await docRef.get();
-      if (savedDoc.exists) {
-        print('Verification: Result successfully saved and can be read back');
-        print('Saved data: ${savedDoc.data()}');
-      } else {
-        print('Verification: Result was not saved properly');
-      }
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -243,8 +203,6 @@ class _MCQTestScreenState extends State<MCQTestScreen> {
         ),
       );
     } catch (e) {
-      print('Error saving test result: $e');
-      print('Error type: ${e.runtimeType}');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error saving result: $e'),

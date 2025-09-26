@@ -1159,30 +1159,45 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
           children: [
             Text(test['description'] ?? ''),
             const SizedBox(height: 4),
-            Row(
+            Wrap(
+              spacing: 16,
+              runSpacing: 6,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                Icon(Icons.quiz, size: 16, color: Colors.grey[600]),
-                const SizedBox(width: 4),
-                Text(
-                  '${questions.length} questions',
-                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.quiz, size: 16, color: Colors.grey[600]),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${questions.length} questions',
+                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 16),
-                Icon(Icons.star, size: 16, color: Colors.amber[600]),
-                const SizedBox(width: 4),
-                Text(
-                  '$totalMarks marks',
-                  style: TextStyle(color: Colors.amber[700], fontSize: 12),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.star, size: 16, color: Colors.amber[600]),
+                    const SizedBox(width: 4),
+                    Text(
+                      '$totalMarks marks',
+                      style: TextStyle(color: Colors.amber[700], fontSize: 12),
+                    ),
+                  ],
                 ),
-                if (timeLimit != null) ...[
-                  const SizedBox(width: 16),
-                  Icon(Icons.timer, size: 16, color: Colors.grey[600]),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${timeLimit} min',
-                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                if (timeLimit != null)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.timer, size: 16, color: Colors.grey[600]),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${timeLimit} min',
+                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                      ),
+                    ],
                   ),
-                ],
               ],
             ),
             const SizedBox(height: 4),
@@ -1210,17 +1225,6 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
   }
 
   void _startMCQTest(Map<String, dynamic> test) {
-    print('Starting MCQ test with data: $test');
-    print('Test ID: ${test['id']}');
-    print('Test Title: ${test['title']}');
-    print('Test Standard: ${test['standard']}');
-    print('Test Board: ${test['board']}');
-    print('Test Subject: ${test['subject']}');
-    print('Questions count: ${(test['questions'] as List?)?.length ?? 0}');
-    print('Test data type: ${test.runtimeType}');
-    print('Standard field type: ${test['standard'].runtimeType}');
-    print('Board field type: ${test['board'].runtimeType}');
-
     Navigator.of(context).pop(); // Close the bottom sheet
     Navigator.of(context).push(
       MaterialPageRoute(builder: (context) => MCQTestScreen(testData: test)),
@@ -1629,17 +1633,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                             return true;
                           }).toList();
 
-                      // Debug: Print student results count and filtering details
-                      print(
-                        'Student Results - Found ${allResults.length} total results, ${filteredResults.length} filtered results for ${_enrollmentData?['email']}',
-                      );
-                      print('Selected filter: $_selectedResultType');
-                      print(
-                        'All results types: ${allResults.map((r) => {
-                          'type': r['testType'] ?? (r['questionDetails'] != null ? 'MCQ' : 'Descriptive'),
-                          'hasQuestionDetails': r['questionDetails'] != null
-                        }).toList()}',
-                      );
+                      // Results loaded; removed debug prints to keep console clean
 
                       if (filteredResults.isEmpty) {
                         return Center(
@@ -1769,19 +1763,35 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 4),
-            Row(
+            Wrap(
+              spacing: 16,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                Icon(Icons.star, size: 16, color: Colors.amber[600]),
-                const SizedBox(width: 4),
-                Text('$score/$totalMarks marks'),
-                const SizedBox(width: 16),
-                Icon(Icons.timer, size: 16, color: Colors.grey[600]),
-                const SizedBox(width: 4),
-                Text('${timeTaken} min'),
-                const SizedBox(width: 16),
-                Icon(Icons.school, size: 16, color: Colors.grey[600]),
-                const SizedBox(width: 4),
-                Text(result['standard'] ?? 'N/A'),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.star, size: 16, color: Colors.amber[600]),
+                    const SizedBox(width: 4),
+                    Text('$score/$totalMarks marks'),
+                  ],
+                ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.timer, size: 16, color: Colors.grey[600]),
+                    const SizedBox(width: 4),
+                    Text('${timeTaken} min'),
+                  ],
+                ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.school, size: 16, color: Colors.grey[600]),
+                    const SizedBox(width: 4),
+                    Text(result['standard'] ?? 'N/A'),
+                  ],
+                ),
               ],
             ),
             const SizedBox(height: 4),

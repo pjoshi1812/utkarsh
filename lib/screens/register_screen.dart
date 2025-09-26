@@ -82,12 +82,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                    // Send email verification
           try {
             await user.sendEmailVerification();
-            print('Email verification sent successfully to: ${user.email}');
-            print('Please check your email (including spam folder) for verification link');
-            print('Sender: noreply@utkarsh-8cf54.firebaseapp.com');
-            print('Subject: Verify your email for Utkarsh Academy');
           } catch (e) {
-            print('Error sending email verification: $e');
             // Continue with registration even if email verification fails
           }
 

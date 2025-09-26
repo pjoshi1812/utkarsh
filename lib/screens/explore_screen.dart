@@ -585,6 +585,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
   }
 
   Widget _buildDemoVideosSection() {
+    if (demoVideos.isEmpty) {
+      return const SizedBox.shrink();
+    }
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -617,7 +620,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
           ),
           const SizedBox(height: 16),
           SizedBox(
-            height: 200,
+            height: 212,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               itemCount: demoVideos.length,
@@ -703,6 +706,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                   fontWeight: FontWeight.bold,
                                   color: Colors.green,
                                 ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                               const SizedBox(height: 4),
                               Text(
@@ -711,6 +716,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                   fontSize: 12,
                                   color: Colors.grey,
                                 ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                               ),
                               const SizedBox(height: 4),
                               Row(

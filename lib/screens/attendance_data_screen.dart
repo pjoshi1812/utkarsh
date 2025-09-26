@@ -25,6 +25,22 @@ class _AttendanceDataScreenState extends State<AttendanceDataScreen> {
     return '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
   }
 
+  Widget _legendChip(String label, MaterialColor color) {
+    return Chip(
+      label: Text(
+        label,
+        style: TextStyle(
+          color: color.shade800,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      backgroundColor: color.withOpacity(0.15),
+      side: BorderSide(color: color.withOpacity(0.5)),
+      visualDensity: VisualDensity.compact,
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    );
+  }
+
   Future<void> _pickDate() async {
     final DateTime now = DateTime.now();
     final DateTime firstDate = DateTime(now.year - 1, 1, 1);
@@ -313,20 +329,35 @@ class _AttendanceDataScreenState extends State<AttendanceDataScreen> {
               color: Colors.green[700],
               borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
             ),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.list_alt, color: Colors.white),
-                const SizedBox(width: 8),
-                Text(
-                  'Attendance Records (${_attendanceRecords.length})',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+                Row(
+                  children: [
+                    const Icon(Icons.list_alt, color: Colors.white),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Attendance Records (${_attendanceRecords.length})',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Spacer(),
+                    _buildSummaryChip(),
+                  ],
                 ),
-                const Spacer(),
-                _buildSummaryChip(),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
+                  children: [
+                    _legendChip('Present', Colors.green),
+                    _legendChip('Absent', Colors.red),
+                    _legendChip('Pre-Leave', Colors.orange),
+                  ],
+                ),
               ],
             ),
           ),
@@ -372,47 +403,95 @@ class _AttendanceDataScreenState extends State<AttendanceDataScreen> {
   Widget _buildAttendanceCard(_AttendanceRecord record) {
     final statusColor = _getStatusColor(record.status);
     final statusLabel = _getStatusLabel(record.status);
-    
+
     return Card(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 10),
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: statusColor.withOpacity(0.3), width: 1),
+      ),
       child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         leading: CircleAvatar(
           backgroundColor: statusColor.withOpacity(0.1),
           child: Icon(
-            record.status == 'present' ? Icons.check : 
+            record.status == 'present' ? Icons.check :
             record.status == 'absent' ? Icons.close : Icons.schedule,
             color: statusColor,
           ),
         ),
         title: Text(
           record.studentName,
-          style: const TextStyle(fontWeight: FontWeight.w600),
+          style: const TextStyle(fontWeight: FontWeight.w700),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Class: ${record.course}'),
-            if (record.markedAt != null)
-              Text(
-                'Marked: ${_formatDateTime(record.markedAt!)}',
-                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-              ),
-          ],
-        ),
-        trailing: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: statusColor.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: statusColor),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final double itemMaxWidth = constraints.maxWidth * 0.48;
+              return Wrap(
+                spacing: 12,
+                runSpacing: 6,
+                children: [
+                  ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: itemMaxWidth),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.school, size: 14, color: Colors.grey),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            'Class: ${record.course}',
+                            style: TextStyle(color: Colors.grey[700]),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (record.markedAt != null)
+                    ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: itemMaxWidth),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.access_time, size: 14, color: Colors.grey),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              'Marked: ${_formatDateTime(record.markedAt!)}',
+                              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              );
+            },
           ),
-          child: Text(
-            statusLabel,
-            style: TextStyle(
-              color: statusColor,
-              fontWeight: FontWeight.bold,
-              fontSize: 12,
+        ),
+        trailing: FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerRight,
+          child: Chip(
+            label: Text(
+              statusLabel,
+              style: TextStyle(
+                color: statusColor,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
             ),
+            backgroundColor: statusColor.withOpacity(0.1),
+            side: BorderSide(color: statusColor),
           ),
         ),
         onTap: () => _showAttendanceDetails(record),
