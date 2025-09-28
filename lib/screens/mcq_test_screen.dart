@@ -24,6 +24,15 @@ class _MCQTestScreenState extends State<MCQTestScreen> {
   Duration? _timeRemaining;
   Timer? _timer;
 
+  int _parseMarks(dynamic value, {int fallback = 1}) {
+    if (value is int) return value;
+    if (value is String) {
+      final v = int.tryParse(value.trim());
+      if (v != null) return v;
+    }
+    return fallback;
+  }
+
   Future<void> _testFirebaseConnection() async {
     try {
       await FirebaseFirestore.instance
@@ -62,7 +71,7 @@ class _MCQTestScreenState extends State<MCQTestScreen> {
         _questions = questions;
         _totalMarks = questions.fold(
           0,
-          (sum, q) => sum + (q['marks'] as int? ?? 0),
+          (sum, q) => sum + _parseMarks(q['marks'], fallback: 1),
         );
         _isLoading = false;
         _startTime = DateTime.now();
@@ -117,7 +126,7 @@ class _MCQTestScreenState extends State<MCQTestScreen> {
       final correctAnswer = question['correctAnswer'] as String?;
 
       if (userAnswer == correctAnswer) {
-        score += question['marks'] as int? ?? 0;
+        score += _parseMarks(question['marks'], fallback: 1);
       }
     }
 
@@ -268,7 +277,7 @@ class _MCQTestScreenState extends State<MCQTestScreen> {
                   ),
                 ),
                 Text(
-                  '${_questions[_currentQuestionIndex]['marks']} marks',
+                  '${_parseMarks(_questions[_currentQuestionIndex]['marks'], fallback: 1)} marks',
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.amber[700],
@@ -429,8 +438,7 @@ class _MCQTestScreenState extends State<MCQTestScreen> {
   }
 
   Widget _buildResultScreen() {
-    final percentage =
-        _totalMarks > 0 ? (_score / _totalMarks * 100).round() : 0;
+    final percentage = _totalMarks > 0 ? (_score / _totalMarks * 100).round() : 0;
 
     return Scaffold(
       appBar: AppBar(
@@ -440,116 +448,111 @@ class _MCQTestScreenState extends State<MCQTestScreen> {
         automaticallyImplyLeading: false,
       ),
       body: Center(
-        child: Card(
-          margin: const EdgeInsets.all(20),
-          child: Padding(
-            padding: const EdgeInsets.all(30),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  percentage >= 70 ? Icons.celebration : Icons.school,
-                  size: 80,
-                  color: percentage >= 70 ? Colors.green : Colors.orange,
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  percentage >= 70 ? 'Congratulations!' : 'Good Try!',
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  'Your Score: $_score / $_totalMarks',
-                  style: const TextStyle(fontSize: 20),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'Percentage: $percentage%',
-                  style: const TextStyle(fontSize: 18),
-                ),
-                const SizedBox(height: 30),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: Card(
+            margin: const EdgeInsets.all(20),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Icon(
+                      percentage >= 70 ? Icons.celebration : Icons.school,
+                      size: 80,
+                      color: percentage >= 70 ? Colors.green : Colors.orange,
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      percentage >= 70 ? 'Congratulations!' : 'Good Try!',
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Your Score: $_score / $_totalMarks',
+                      style: const TextStyle(fontSize: 20),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Percentage: $percentage%',
+                      style: const TextStyle(fontSize: 18),
+                    ),
+                    const SizedBox(height: 30),
+                    if (_questions.isNotEmpty) ...[
+                      const Text(
+                        'Answer Explanations:',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 16),
+                      ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: _questions.length,
+                        itemBuilder: (context, index) {
+                          final question = _questions[index];
+                          final userAnswer = _userAnswers[index];
+                          final correctAnswer = question['correctAnswer'] as String?;
+                          final isCorrect = userAnswer == correctAnswer;
+                          final explanation = question['explanation'] as String?;
 
-                // Show explanations
-                if (_questions.isNotEmpty) ...[
-                  const Text(
-                    'Answer Explanations:',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    height: 300,
-                    child: ListView.builder(
-                      itemCount: _questions.length,
-                      itemBuilder: (context, index) {
-                        final question = _questions[index];
-                        final userAnswer = _userAnswers[index];
-                        final correctAnswer =
-                            question['correctAnswer'] as String?;
-                        final isCorrect = userAnswer == correctAnswer;
-                        final explanation = question['explanation'] as String?;
-
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          color: isCorrect ? Colors.green[50] : Colors.red[50],
-                          child: ListTile(
-                            leading: CircleAvatar(
-                              backgroundColor:
-                                  isCorrect ? Colors.green : Colors.red,
-                              child: Text(
-                                '${index + 1}',
-                                style: const TextStyle(color: Colors.white),
+                          return Card(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            color: isCorrect ? Colors.green[50] : Colors.red[50],
+                            child: ListTile(
+                              leading: CircleAvatar(
+                                backgroundColor: isCorrect ? Colors.green : Colors.red,
+                                child: Text(
+                                  '${index + 1}',
+                                  style: const TextStyle(color: Colors.white),
+                                ),
                               ),
-                            ),
-                            title: Text(
-                              'Your answer: ${userAnswer ?? 'Not answered'}',
-                              style: TextStyle(
-                                color:
-                                    isCorrect
-                                        ? Colors.green[700]
-                                        : Colors.red[700],
-                                fontWeight: FontWeight.bold,
+                              title: Text(
+                                'Your answer: ${userAnswer ?? 'Not answered'}',
+                                style: TextStyle(
+                                  color: isCorrect ? Colors.green[700] : Colors.red[700],
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
-                            ),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Correct answer: $correctAnswer'),
-                                if (explanation != null &&
-                                    explanation.isNotEmpty) ...[
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Explanation: $explanation',
-                                    style: const TextStyle(
-                                      fontStyle: FontStyle.italic,
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Correct answer: $correctAnswer'),
+                                  if (explanation != null && explanation.isNotEmpty) ...[
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Explanation: $explanation',
+                                      style: const TextStyle(fontStyle: FontStyle.italic),
                                     ),
-                                  ),
+                                  ],
                                 ],
-                              ],
+                              ),
                             ),
-                          ),
-                        );
-                      },
+                          );
+                        },
+                      ),
+                    ],
+                    const SizedBox(height: 20),
+                    Align(
+                      alignment: Alignment.center,
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green[700],
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                        ),
+                        child: const Text('Close'),
+                      ),
                     ),
-                  ),
-                ],
-
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green[700],
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 30,
-                      vertical: 12,
-                    ),
-                  ),
-                  child: const Text('Close'),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),

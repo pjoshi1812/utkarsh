@@ -147,56 +147,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                           Icons.school,
                           Colors.orange,
                           () {
-                            // TODO: Implement student management
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text(
-                                  'Student Management coming soon!',
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                        _buildFeatureCard(
-                          context,
-                          'Reports & Analytics',
-                          Icons.analytics,
-                          Colors.indigo,
-                          () {
-                            // TODO: Implement reports
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Reports & Analytics coming soon!',
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                        _buildFeatureCard(
-                          context,
-                          'Settings',
-                          Icons.settings,
-                          Colors.grey,
-                          () {
-                            // TODO: Implement settings
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Settings coming soon!'),
-                              ),
-                            );
-                          },
-                        ),
-                        _buildFeatureCard(
-                          context,
-                          'Notifications',
-                          Icons.notifications,
-                          Colors.red,
-                          () {
-                            // TODO: Implement notifications
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Notifications coming soon!'),
+                                content: Text('Student Management coming soon!'),
                               ),
                             );
                           },
