@@ -14,6 +14,7 @@ import 'screens/attendance_data_screen.dart';
 import 'screens/admin_content_dashboard_screen.dart';
 import 'screens/student_notes_screen.dart';
 import 'screens/student_assignments_screen.dart';
+import 'screens/admin_explore_management_screen.dart';
 import 'models/content_model.dart';
 
 void main() async {
@@ -42,6 +43,7 @@ class MainApp extends StatelessWidget {
         '/attendance-data': (context) => const AttendanceDataScreen(),
         '/admin-content-dashboard': (context) => const AdminContentDashboardScreen(),
         '/admin-results': (context) => const AdminResultsScreen(),
+        '/admin-explore': (context) => const AdminExploreManagementScreen(),
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/student-notes') {

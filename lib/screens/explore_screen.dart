@@ -3,7 +3,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:video_player/video_player.dart';
+import '../services/feedback_service.dart';
+import '../models/feedback_model.dart';
 import '../models/media_model.dart';
+import '../services/explore_service.dart';
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});
@@ -15,6 +18,7 @@ class ExploreScreen extends StatefulWidget {
 class _ExploreScreenState extends State<ExploreScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final ExploreService _exploreService = ExploreService();
   User? currentUser;
   Map<String, dynamic>? userData;
   bool isLoading = true;
@@ -60,32 +64,17 @@ class _ExploreScreenState extends State<ExploreScreen> {
       });
     } catch (e) {
       debugPrint('Error loading user data: $e');
-      setState(() {
-        isLoading = false;
-      });
     }
   }
 
   Future<void> _loadMedia() async {
     try {
-      final QuerySnapshot querySnapshot =
-          await _firestore.collection('media').get();
-
-      final List<MediaModel> mediaList =
-          querySnapshot.docs.map((doc) {
-              return MediaModel.fromJson(
-                doc.data() as Map<String, dynamic>,
-                doc.id,
-              );
-            }).toList()
-            ..sort((a, b) {
-              // Sort by creation date in code
-              return b.createdAt.compareTo(a.createdAt);
-            });
-
-      setState(() {
-        _mediaList = mediaList;
-      });
+      final fetched = await _exploreService.fetchByCategory('general', limit: 30);
+      if (mounted) {
+        setState(() {
+          _mediaList = fetched;
+        });
+      }
     } catch (e) {
       debugPrint('Error loading media: $e');
     }
@@ -93,45 +82,31 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
   Future<void> _loadDemoVideos() async {
     try {
-      demoVideos = [
-        MediaModel(
-          id: '1',
-          title: 'Demo Video 1',
-          description: 'Mathematics - Chapter 1',
-          url:
-              'https://res.cloudinary.com/dpyig1neh/video/upload/Screen_Recording_2025-08-05_221051_tg21sb.mp4',
-          thumbnailUrl:
-              'https://res.cloudinary.com/dpyig1neh/video/upload/w_300,h_200,c_fill,so_0/Screen_Recording_2025-08-05_221051_tg21sb.jpg',
-          type: 'video',
-          duration: 15,
-          createdAt: DateTime.now(),
-        ),
-        MediaModel(
-          id: '2',
-          title: 'Demo Video 2',
-          description: 'Mathematics - Chapter 2',
-          url:
-              'https://res.cloudinary.com/dpyig1neh/video/upload/Screen_Recording_2025-08-05_221051_tg21sb.mp4',
-          thumbnailUrl:
-              'https://res.cloudinary.com/dpyig1neh/video/upload/w_300,h_200,c_fill,so_0/Screen_Recording_2025-08-05_221051_tg21sb.jpg',
-          type: 'video',
-          duration: 20,
-          createdAt: DateTime.now(),
-        ),
-        MediaModel(
-          id: '3',
-          title: 'Demo Video 3',
-          description: 'Mathematics - Chapter 3',
-          url:
-              'https://res.cloudinary.com/dpyig1neh/video/upload/Screen_Recording_2025-08-05_221051_tg21sb.mp4',
-          thumbnailUrl:
-              'https://res.cloudinary.com/dpyig1neh/video/upload/w_300,h_200,c_fill,so_0/Screen_Recording_2025-08-05_221051_tg21sb.jpg',
-          type: 'video',
-          duration: 25,
-          createdAt: DateTime.now(),
-        ),
-      ];
-      setState(() {});
+      final fetched = await _exploreService.fetchByCategory('demo_video', limit: 20);
+      if (mounted) {
+        setState(() {
+          demoVideos = fetched;
+        });
+      }
+      if (fetched.isEmpty) {
+        // Fallback to existing static samples
+        demoVideos = [
+          MediaModel(
+            id: '1',
+            title: 'Demo Video 1',
+            description: 'Mathematics - Chapter 1',
+            url:
+                'https://res.cloudinary.com/dpyig1neh/video/upload/Screen_Recording_2025-08-05_221051_tg21sb.mp4',
+            thumbnailUrl:
+                'https://res.cloudinary.com/dpyig1neh/video/upload/w_300,h_200,c_fill,so_0/Screen_Recording_2025-08-05_221051_tg21sb.jpg',
+            type: 'video',
+            duration: 15,
+            createdAt: DateTime.now(),
+            category: 'demo_video',
+          ),
+        ];
+        if (mounted) setState(() {});
+      }
     } catch (e) {
       debugPrint('Error loading demo videos: $e');
     }
@@ -139,56 +114,48 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
   Future<void> _loadPamphletsAndBanners() async {
     try {
-      classPamphlets = [
-        MediaModel(
-          id: 'p1',
-          title: 'Pamphlet 1',
-          description: 'Cloudinary Pamphlet Example',
-          url:
-              'https://res.cloudinary.com/dpyig1neh/image/upload/maths_banner_kz9kq0.jpg',
-          thumbnailUrl:
-              'https://res.cloudinary.com/dpyig1neh/image/upload/maths_banner_kz9kq0.jpg',
-          type: 'image',
-          createdAt: DateTime.now(),
-        ),
-        MediaModel(
-          id: 'p2',
-          title: 'Pamphlet 2',
-          description: 'Course Details',
-          url:
-              'https://res.cloudinary.com/dpyig1neh/image/upload/maths_banner_kz9kq0.jpg',
-          thumbnailUrl:
-              'https://res.cloudinary.com/dpyig1neh/image/upload/maths_banner_kz9kq0.jpg',
-          type: 'image',
-          createdAt: DateTime.now(),
-        ),
-      ];
-
-      banners = [
-        MediaModel(
-          id: 'b1',
-          title: 'Banner 1',
-          description: 'Special Offer',
-          url:
-              'https://res.cloudinary.com/dpyig1neh/image/upload/maths_banner_kz9kq0.jpg',
-          thumbnailUrl:
-              'https://res.cloudinary.com/dpyig1neh/image/upload/maths_banner_kz9kq0.jpg',
-          type: 'image',
-          createdAt: DateTime.now(),
-        ),
-        MediaModel(
-          id: 'b2',
-          title: 'Banner 2',
-          description: 'New Course',
-          url:
-              'https://res.cloudinary.com/dpyig1neh/image/upload/maths_banner_kz9kq0.jpg',
-          thumbnailUrl:
-              'https://res.cloudinary.com/dpyig1neh/image/upload/maths_banner_kz9kq0.jpg',
-          type: 'image',
-          createdAt: DateTime.now(),
-        ),
-      ];
-      setState(() {});
+      final fetchedPamphlets = await _exploreService.fetchByCategory('pamphlet', limit: 20);
+      final fetchedBanners = await _exploreService.fetchByCategory('banner', limit: 20);
+      if (mounted) {
+        setState(() {
+          classPamphlets = fetchedPamphlets;
+          banners = fetchedBanners;
+        });
+      }
+      // Fallbacks if empty
+      if (fetchedPamphlets.isEmpty) {
+        classPamphlets = [
+          MediaModel(
+            id: 'p1',
+            title: 'Pamphlet 1',
+            description: 'Cloudinary Pamphlet Example',
+            url:
+                'https://res.cloudinary.com/dpyig1neh/image/upload/maths_banner_kz9kq0.jpg',
+            thumbnailUrl:
+                'https://res.cloudinary.com/dpyig1neh/image/upload/maths_banner_kz9kq0.jpg',
+            type: 'image',
+            createdAt: DateTime.now(),
+            category: 'pamphlet',
+          ),
+        ];
+      }
+      if (fetchedBanners.isEmpty) {
+        banners = [
+          MediaModel(
+            id: 'b1',
+            title: 'Banner 1',
+            description: 'Special Offer',
+            url:
+                'https://res.cloudinary.com/dpyig1neh/image/upload/maths_banner_kz9kq0.jpg',
+            thumbnailUrl:
+                'https://res.cloudinary.com/dpyig1neh/image/upload/maths_banner_kz9kq0.jpg',
+            type: 'image',
+            createdAt: DateTime.now(),
+            category: 'banner',
+          ),
+        ];
+      }
+      if (mounted) setState(() {});
     } catch (e) {
       debugPrint('Error loading pamphlets and banners: $e');
     }
@@ -408,9 +375,15 @@ class _ExploreScreenState extends State<ExploreScreen> {
                           // Welcome Section with Login/Register
                           _buildWelcomeSection(),
                           const SizedBox(height: 20),
-
                           // Demo Videos Section
                           _buildDemoVideosSection(),
+                          const SizedBox(height: 20),
+
+                          // Previous Year Toppers
+                          _buildPreviousYearToppers(),
+                          const SizedBox(height: 20),
+                          // Class Pamphlets and Banners
+                          _buildClassPamphlets(),
                           const SizedBox(height: 20),
 
                           // Media Content Section
@@ -418,14 +391,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
                             _buildMediaContentSection(),
                             const SizedBox(height: 20),
                           ],
-
-                          // Previous Year Toppers
-                          _buildPreviousYearToppers(),
-                          const SizedBox(height: 20),
-
-                          // Class Pamphlets and Banners
-                          _buildClassPamphlets(),
-                          const SizedBox(height: 20),
 
                           // Student/Parent Feedback
                           _buildFeedbackSection(),
@@ -770,7 +735,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Latest Media Content',
+            'Media',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -779,123 +744,167 @@ class _ExploreScreenState extends State<ExploreScreen> {
           ),
           const SizedBox(height: 16),
           SizedBox(
-            height: 200,
+            height: 186,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               itemCount: _mediaList.length,
               itemBuilder: (context, index) {
                 final media = _mediaList[index];
-                return Container(
-                  width: 280,
-                  margin: const EdgeInsets.only(right: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
-                        blurRadius: 5,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      ClipRRect(
-                        borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(12),
-                        ),
-                        child: CachedNetworkImage(
-                          imageUrl: media.thumbnailUrl,
-                          height: 120,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                          placeholder:
-                              (context, url) => Container(
-                                height: 120,
-                                color: Colors.grey[300],
-                                child: const Center(
-                                  child: CircularProgressIndicator(),
+                return GestureDetector(
+                  onTap: () {
+                    if (media.type == 'video') {
+                      _showVideoPlayer(media.url, media.title);
+                    } else {
+                      showDialog(
+                        context: context,
+                        builder: (context) => Dialog(
+                          backgroundColor: Colors.black,
+                          insetPadding: const EdgeInsets.all(8),
+                          child: Stack(
+                            children: [
+                              InteractiveViewer(
+                                child: CachedNetworkImage(
+                                  imageUrl: media.url,
+                                  fit: BoxFit.contain,
+                                  placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
+                                  errorWidget: (context, url, error) => const Icon(Icons.error, color: Colors.red),
                                 ),
                               ),
-                          errorWidget:
-                              (context, url, error) => Container(
-                                height: 120,
-                                color: Colors.grey[300],
-                                child: const Icon(
-                                  Icons.image,
-                                  size: 50,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              media.title,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              media.description,
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey[600],
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                Icon(
-                                  media.type == 'video'
-                                      ? Icons.video_library
-                                      : Icons.image,
-                                  size: 16,
-                                  color: Colors.green,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  media.type.toUpperCase(),
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.green,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                if (media.duration != null) ...[
-                                  const Spacer(),
-                                  Text(
-                                    '${media.duration} min',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey[600],
+                              Positioned(
+                                top: 8,
+                                right: 8,
+                                child: GestureDetector(
+                                  onTap: () => Navigator.of(context).pop(),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withValues(alpha: 0.7),
+                                      shape: BoxShape.circle,
                                     ),
+                                    child: const Icon(Icons.close, color: Colors.white, size: 24),
                                   ),
-                                ],
-                              ],
-                            ),
-                          ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                      );
+                    }
+                  },
+                  child: Container(
+                    width: 260,
+                    margin: const EdgeInsets.only(right: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 5,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ClipRRect(
+                          borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                          child: Builder(
+                            builder: (_) {
+                              final isVideo = media.type.toLowerCase() == 'video';
+                              if (isVideo) {
+                                if (media.thumbnailUrl.isNotEmpty) {
+                                  return CachedNetworkImage(
+                                    imageUrl: media.thumbnailUrl,
+                                    height: 108,
+                                    width: double.infinity,
+                                    fit: BoxFit.cover,
+                                    placeholder: (context, url) => Container(
+                                      height: 108,
+                                      color: Colors.grey[300],
+                                      child: const Center(child: CircularProgressIndicator()),
+                                    ),
+                                    errorWidget: (context, url, error) => _videoThumbPlaceholder(),
+                                  );
+                                }
+                                return _videoThumbPlaceholder();
+                              } else {
+                                return CachedNetworkImage(
+                                  imageUrl: media.url,
+                                  height: 108,
+                                  width: double.infinity,
+                                  fit: BoxFit.cover,
+                                  placeholder: (context, url) => Container(
+                                    height: 108,
+                                    color: Colors.grey[300],
+                                    child: const Center(child: CircularProgressIndicator()),
+                                  ),
+                                  errorWidget: (context, url, error) => Container(
+                                    height: 108,
+                                    color: Colors.grey[300],
+                                    child: const Icon(Icons.broken_image, size: 40, color: Colors.grey),
+                                  ),
+                                );
+                              }
+                            },
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(10),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                media.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                              ),
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  Icon(
+                                    media.type == 'video' ? Icons.video_library : Icons.image,
+                                    size: 14,
+                                    color: Colors.green,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    media.type.toUpperCase(),
+                                    style: const TextStyle(fontSize: 11, color: Colors.green, fontWeight: FontWeight.w600),
+                                  ),
+                                  if (media.duration != null) ...[
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      '${media.duration} min',
+                                      style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 );
               },
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _videoThumbPlaceholder() {
+    return Container(
+      height: 108,
+      width: double.infinity,
+      color: Colors.black12,
+      child: const Center(
+        child: Icon(Icons.play_circle_fill, color: Colors.redAccent, size: 40),
       ),
     );
   }
@@ -924,7 +933,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
               const Text(
                 'Previous Year Toppers',
                 style: TextStyle(
-                  fontSize: 18,
+                  fontSize: 20,
                   fontWeight: FontWeight.bold,
                   color: Colors.green,
                 ),
@@ -932,23 +941,70 @@ class _ExploreScreenState extends State<ExploreScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          _buildTopperCard('2023', [
-            {'name': 'Rahul Sharma', 'marks': '98%', 'rank': '1st'},
-            {'name': 'Priya Patel', 'marks': '96%', 'rank': '2nd'},
-            {'name': 'Amit Kumar', 'marks': '94%', 'rank': '3rd'},
-          ]),
-          const SizedBox(height: 12),
-          _buildTopperCard('2022', [
-            {'name': 'Neha Singh', 'marks': '97%', 'rank': '1st'},
-            {'name': 'Vikram Malhotra', 'marks': '95%', 'rank': '2nd'},
-            {'name': 'Anjali Gupta', 'marks': '93%', 'rank': '3rd'},
-          ]),
+          StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+            stream: FirebaseFirestore.instance
+                .collection('toppers')
+                .orderBy('year', descending: true)
+                .snapshots(),
+            builder: (context, snap) {
+              if (snap.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snap.hasError) {
+                return Text('Error: ${snap.error}');
+              }
+              final docs = snap.data?.docs ?? [];
+              if (docs.isEmpty) {
+                return const Text('Topper data coming soon');
+              }
+
+              // Group by standard-board-year so every year is visible
+              final Map<String, List<Map<String, dynamic>>> grouped = {};
+              for (final d in docs) {
+                final t = d.data();
+                final std = (t['standard'] ?? '').toString();
+                final board = (t['board'] ?? '').toString();
+                final yearNum = (t['year'] is num)
+                    ? (t['year'] as num).toInt()
+                    : int.tryParse(t['year']?.toString() ?? '') ?? 0;
+                final key = '$std-$board-$yearNum';
+                grouped.putIfAbsent(key, () => []).add({...t, 'id': d.id, 'year': yearNum});
+              }
+
+              // Sort keys by year desc, then std/board
+              final sortedKeys = grouped.keys.toList()
+                ..sort((a, b) {
+                  final ay = int.tryParse(a.split('-').last) ?? 0;
+                  final by = int.tryParse(b.split('-').last) ?? 0;
+                  final c = by.compareTo(ay);
+                  if (c != 0) return c;
+                  return a.compareTo(b);
+                });
+
+              final sections = <Widget>[];
+              for (final key in sortedKeys) {
+                final parts = key.split('-');
+                final std = parts.isNotEmpty ? parts[0] : '';
+                final board = parts.length > 1 ? parts[1] : '';
+                final yearNum = int.tryParse(parts.last) ?? 0;
+                final list = grouped[key]!..sort((a, b) => (a['rank'] as int).compareTo(b['rank'] as int));
+                sections.add(
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _buildDynamicTopperCard('$yearNum • $std ($board)', list),
+                  ),
+                );
+              }
+
+              return Column(children: sections);
+            },
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildTopperCard(String year, List<Map<String, String>> toppers) {
+  Widget _buildDynamicTopperCard(String title, List<Map<String, dynamic>> toppers) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -959,7 +1015,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Year $year',
+            title,
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -967,44 +1023,57 @@ class _ExploreScreenState extends State<ExploreScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          ...toppers.map(
-            (topper) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
+          ...toppers.map((t) {
+            final name = (t['studentName'] ?? '').toString();
+            final rank = (t['rank'] ?? '').toString();
+            final perc = (t['percentage'] ?? '').toString();
+            final year = (t['year'] ?? '').toString();
+            return Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
+                        padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: Colors.green,
-                          borderRadius: BorderRadius.circular(12),
+                          color: Colors.amber.withValues(alpha: 0.2),
+                          shape: BoxShape.circle,
                         ),
-                        child: Text(
-                          topper['rank']!,
-                          style: const TextStyle(
-                            fontSize: 10,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                        child: const Icon(Icons.emoji_events, color: Colors.amber, size: 20),
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        topper['name']!,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            name,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text('Rank $rank • Year $year', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                        ],
                       ),
                     ],
                   ),
                   Text(
-                    topper['marks']!,
+                    '$perc%',
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -1013,8 +1082,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   ),
                 ],
               ),
-            ),
-          ),
+            );
+          }).toList(),
         ],
       ),
     );
@@ -1024,7 +1093,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.9),
+        color: Colors.white.withValues(alpha: 0.75),
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
@@ -1210,40 +1279,50 @@ class _ExploreScreenState extends State<ExploreScreen> {
               const Icon(Icons.feedback, color: Colors.green),
               const SizedBox(width: 8),
               const Text(
-                'Student/Parent Feedback',
+                'Student & Parent Feedback',
                 style: TextStyle(
-                  fontSize: 18,
+                  fontSize: 20,
                   fontWeight: FontWeight.bold,
                   color: Colors.green,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          _buildFeedbackCard(
-            'Rahul Sharma',
-            'Parent',
-            'Excellent teaching methodology. My child has improved significantly in mathematics.',
-            5,
-          ),
           const SizedBox(height: 12),
-          _buildFeedbackCard(
-            'Priya Patel',
-            'Student',
-            'The teachers are very supportive and the study material is comprehensive.',
-            5,
-          ),
-          const SizedBox(height: 12),
-          _buildFeedbackCard(
-            'Amit Kumar',
-            'Parent',
-            'Great environment for learning. Highly recommended for competitive exam preparation.',
-            4,
+          StreamBuilder<List<FeedbackModel>>(
+            stream: FeedbackService().streamRecent(limit: 12),
+            builder: (context, snap) {
+              if (snap.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              final items = snap.data ?? [];
+              if (items.isEmpty) {
+                return const Text('No feedback yet');
+              }
+              return Column(
+                children: items
+                    .map(
+                      (f) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _buildFeedbackCard(
+                          f.studentName.isNotEmpty ? f.studentName : 'Student',
+                          f.course.isNotEmpty ? f.course : 'Enrolled',
+                          f.message,
+                          f.rating,
+                        ),
+                      ),
+                    )
+                    .toList(),
+              );
+            },
           ),
         ],
       ),
     );
   }
+  Widget _buildBranchDetails() {
+  return const SizedBox.shrink();
+}
 
   Widget _buildFeedbackCard(
     String name,
@@ -1302,57 +1381,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
     );
   }
 
-  Widget _buildBranchDetails() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.9),
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.location_on, color: Colors.green),
-              const SizedBox(width: 8),
-              const Text(
-                'Branch Details',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.green,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _buildBranchCard(
-            'Utkarsh Academy',
-            'Mayur Colony, Pune',
-            '+91 9876543210',
-            'main@utkarshacademy.com',
-          ),
-          const SizedBox(height: 12),
-          _buildBranchCard(
-            'Utkarsh Academy',
-            '456 Bibwewadi, Pune',
-            '+91 9876543211',
-            'aaa@utkarshacademy.com',
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBranchCard(
+            Widget _buildBranchCard(
     String name,
     String address,
     String phone,

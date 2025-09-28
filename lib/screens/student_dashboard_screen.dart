@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/content_model.dart';
+import '../services/feedback_service.dart';
 import 'content_viewer_screen.dart';
 import 'mcq_test_screen.dart';
 
@@ -470,11 +471,129 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                   Colors.indigo,
                   () => _showContactTeacher(context),
                 ),
+                _buildFeatureCard(
+                  context,
+                  'Submit Feedback',
+                  Icons.feedback,
+                  Colors.green,
+                  () => _showSubmitFeedbackDialog(context),
+                ),
               ],
             ),
           ),
         ],
       ),
+    );
+  }
+
+  void _showSubmitFeedbackDialog(BuildContext context) {
+    final msgCtl = TextEditingController();
+    int rating = 5;
+    bool seeded = false;
+    final name = (_enrollmentData?['studentName'] ?? '').toString();
+    final course = (_enrollmentData?['course'] ?? '').toString();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return FutureBuilder(
+              future: FeedbackService().getMyFeedback(),
+              builder: (context, snap) {
+                final existing = snap.data;
+                if (!seeded && existing != null) {
+                  rating = existing.rating;
+                  msgCtl.text = existing.message;
+                  seeded = true;
+                }
+
+                return AlertDialog(
+                  title: Text(existing == null ? 'Submit Feedback' : 'Edit Feedback'),
+                  content: SizedBox(
+                    width: 400,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Student: $name'),
+                        const SizedBox(height: 8),
+                        Text('Course: $course'),
+                        const SizedBox(height: 12),
+                        const Text('Rating'),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: List.generate(5, (index) {
+                            final filled = index < rating;
+                            return IconButton(
+                              splashRadius: 20,
+                              onPressed: () => setState(() => rating = index + 1),
+                              icon: Icon(
+                                filled ? Icons.star : Icons.star_border,
+                                color: filled ? Colors.amber : Colors.grey,
+                                size: 28,
+                              ),
+                            );
+                          }),
+                        ),
+                        Text('$rating/5', style: const TextStyle(color: Colors.grey)),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: msgCtl,
+                          maxLines: 4,
+                          decoration: const InputDecoration(
+                            labelText: 'Your feedback',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        if (snap.connectionState == ConnectionState.waiting)
+                          const Padding(
+                            padding: EdgeInsets.only(top: 8.0),
+                            child: LinearProgressIndicator(minHeight: 2),
+                          ),
+                      ],
+                    ),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('Cancel'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () async {
+                        if (msgCtl.text.trim().isEmpty) return;
+                        try {
+                          await FeedbackService().submitFeedback(
+                            message: msgCtl.text.trim(),
+                            rating: rating,
+                            studentName: name,
+                            course: course,
+                          );
+                          if (context.mounted) {
+                            Navigator.of(context).pop();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(existing == null ? 'Feedback submitted.' : 'Feedback updated.'),
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Failed: $e')),
+                            );
+                          }
+                        }
+                      },
+                      child: Text(existing == null ? 'Submit' : 'Update'),
+                    ),
+                  ],
+                );
+              },
+            );
+          },
+        );
+      },
     );
   }
 

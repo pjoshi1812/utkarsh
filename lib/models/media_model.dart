@@ -8,6 +8,7 @@ class MediaModel {
   final String type; // e.g. 'video', 'image'
   final int? duration; // in minutes for videos (optional)
   final DateTime createdAt;
+  final String category; // e.g. 'demo_video', 'pamphlet', 'banner', 'general'
 
   const MediaModel({
     required this.id,
@@ -18,9 +19,21 @@ class MediaModel {
     required this.type,
     this.duration,
     required this.createdAt,
+    this.category = 'general',
   });
 
   factory MediaModel.fromJson(Map<String, dynamic> json, String id) {
+    int? _parseDuration(dynamic value) {
+      if (value == null) return null;
+      if (value is num) return value.toInt();
+      if (value is String) {
+        final v = value.trim();
+        final parsed = int.tryParse(v);
+        return parsed; // null if not a number (e.g., 'none')
+      }
+      return null;
+    }
+
     return MediaModel(
       id: id,
       title: json['title'] as String? ?? '',
@@ -28,8 +41,9 @@ class MediaModel {
       url: json['url'] as String? ?? '',
       thumbnailUrl: json['thumbnailUrl'] as String? ?? '',
       type: json['type'] as String? ?? 'image',
-      duration: (json['duration'] as num?)?.toInt(),
+      duration: _parseDuration(json['duration']),
       createdAt: _parseTimestamp(json['createdAt']),
+      category: json['category'] as String? ?? 'general',
     );
   }
 
@@ -42,6 +56,7 @@ class MediaModel {
       'type': type,
       if (duration != null) 'duration': duration,
       'createdAt': createdAt.toIso8601String(),
+      'category': category,
     };
   }
 
@@ -63,6 +78,6 @@ class MediaModel {
 
   @override
   String toString() {
-    return 'MediaModel(id: $id, title: $title, type: $type)';
+    return 'MediaModel(id: $id, title: $title, type: $type, category: $category)';
   }
 }

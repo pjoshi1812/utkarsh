@@ -57,7 +57,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(0.1),
-                          blurRadius: 10,
                           offset: const Offset(0, 5),
                         ),
                       ],
@@ -127,9 +126,16 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                           Icons.book,
                           Colors.purple,
                           () {
-                            Navigator.of(
-                              context,
-                            ).pushNamed('/admin-content-dashboard');
+                            Navigator.of(context).pushNamed('/admin-content-dashboard');
+                          },
+                        ),
+                        _buildFeatureCard(
+                          context,
+                          'Explore Management',
+                          Icons.explore,
+                          Colors.brown,
+                          () {
+                            Navigator.of(context).pushNamed('/admin-explore');
                           },
                         ),
                         _buildFeatureCard(
