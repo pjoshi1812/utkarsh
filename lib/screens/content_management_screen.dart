@@ -534,6 +534,7 @@ class _ContentManagementScreenState extends State<ContentManagementScreen> {
             return Card(
               margin: const EdgeInsets.only(bottom: 12),
               child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 leading: Icon(
                   content.type == 'note'
                       ? Icons.note
@@ -547,47 +548,70 @@ class _ContentManagementScreenState extends State<ContentManagementScreen> {
                           ? Colors.orange
                           : Colors.red,
                 ),
-                title: Text(content.title),
+                title: Text(
+                  content.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(content.description),
+                    Text(
+                      content.description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                     Text(
                       'Type: ${content.type == 'descriptive' ? 'Descriptive Exam' : content.type}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    Text('Courses: ${content.targetCourses.join(", ")}'),
-                    Text('Standards: ${content.targetStandards.join(", ")}'),
+                    Text(
+                      'Courses: ${content.targetCourses.join(", ")}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      'Standards: ${content.targetStandards.join(", ")}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                     if (content.dueDate != null)
                       Text(
                         'Due: ${content.dueDate!.day}/${content.dueDate!.month}/${content.dueDate!.year}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                   ],
                 ),
-                trailing: PopupMenuButton<String>(
-                  onSelected: (value) => _handleContentAction(value, content),
-                  itemBuilder:
-                      (context) => [
-                        const PopupMenuItem(
-                          value: 'toggle',
-                          child: Row(
-                            children: [
-                              Icon(Icons.visibility),
-                              SizedBox(width: 8),
-                              Text('Toggle Visibility'),
-                            ],
-                          ),
+                trailing: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: PopupMenuButton<String>(
+                    onSelected: (value) => _handleContentAction(value, content),
+                    itemBuilder: (context) => const [
+                      PopupMenuItem(
+                        value: 'toggle',
+                        child: Row(
+                          children: [
+                            Icon(Icons.visibility),
+                            SizedBox(width: 8),
+                            Text('Toggle Visibility'),
+                          ],
                         ),
-                        const PopupMenuItem(
-                          value: 'delete',
-                          child: Row(
-                            children: [
-                              Icon(Icons.delete, color: Colors.red),
-                              SizedBox(width: 8),
-                              Text('Delete'),
-                            ],
-                          ),
+                      ),
+                      PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete, color: Colors.red),
+                            SizedBox(width: 8),
+                            Text('Delete'),
+                          ],
                         ),
-                      ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             );

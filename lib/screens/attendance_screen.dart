@@ -365,7 +365,11 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           return ListTile(
             title: Text(s.name, style: const TextStyle(fontWeight: FontWeight.w600)),
             subtitle: Text('UID: ${s.parentUid.substring(0, s.parentUid.length > 8 ? 8 : s.parentUid.length)}...'),
-            trailing: _buildStatusChips(s.parentUid, current),
+            trailing: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerRight,
+              child: _buildStatusChips(s.parentUid, current),
+            ),
           );
         },
       ),
@@ -373,19 +377,54 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   }
 
   Widget _buildStatusChips(String parentUid, String current) {
+    String abbr(String key) {
+      switch (key) {
+        case 'present':
+          return 'P';
+        case 'absent':
+          return 'A';
+        case 'pre-leave':
+          return 'PL';
+        default:
+          return key;
+      }
+    }
+
+    IconData iconFor(String key) {
+      switch (key) {
+        case 'present':
+          return Icons.check;
+        case 'absent':
+          return Icons.close;
+        case 'pre-leave':
+          return Icons.schedule;
+        default:
+          return Icons.help_outline;
+      }
+    }
+
     return Wrap(
-      spacing: 8,
+      spacing: 6,
+      runSpacing: 4,
       children: _statusOptions.map((opt) {
         final bool selected = current == opt.key;
         return ChoiceChip(
-          label: Text(opt.label),
+          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          avatar: Icon(
+            iconFor(opt.key),
+            size: 16,
+            color: selected ? opt.color : Colors.grey[600],
+          ),
+          label: Text(abbr(opt.key)),
           selected: selected,
-          selectedColor: opt.color.withOpacity(0.2),
+          selectedColor: opt.color.withOpacity(0.18),
+          backgroundColor: Colors.grey[100],
+          side: BorderSide(color: selected ? opt.color : Colors.grey[300]!),
           labelStyle: TextStyle(
             color: selected ? opt.color : Colors.black87,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w600,
           ),
-          onSelected: (val) {
+          onSelected: (_) {
             setState(() {
               _statuses[parentUid] = opt.key;
             });
