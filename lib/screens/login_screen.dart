@@ -75,7 +75,7 @@ class _LoginScreenState extends State<LoginScreen> {
               const SnackBar(content: Text('Login successful!')),
             );
             if (context.mounted) {
-              Navigator.pushReplacementNamed(context, '/explore-more');
+              Navigator.pushReplacementNamed(context, '/explore-more-2');
             }
           }
         }
@@ -221,7 +221,7 @@ class _LoginScreenState extends State<LoginScreen> {
                  const SnackBar(content: Text('Signed in with Google!')),
                );
                if (context.mounted) {
-                 Navigator.pushReplacementNamed(context, '/explore-more');
+                Navigator.pushReplacementNamed(context, '/explore-more-2');
                }
              }
            }

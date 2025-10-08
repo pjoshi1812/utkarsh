@@ -19,6 +19,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final ExploreService _exploreService = ExploreService();
+  
   User? currentUser;
   Map<String, dynamic>? userData;
   bool isLoading = true;
@@ -401,7 +402,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                           const SizedBox(height: 20),
 
                           // Features Grid
-                          _buildFeaturesGrid(),
+                          const SizedBox.shrink(),
                         ],
                       ),
                     ),
@@ -1005,6 +1006,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
   }
 
   Widget _buildDynamicTopperCard(String title, List<Map<String, dynamic>> toppers) {
+    
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -1028,6 +1030,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
             final rank = (t['rank'] ?? '').toString();
             final perc = (t['percentage'] ?? '').toString();
             final year = (t['year'] ?? '').toString();
+            final photo = ((t['photoUrl'] ?? t['profilePhotoUrl'] ?? t['imageUrl'] ?? t['avatarUrl'] ?? '') as String).trim();
             return Container(
               margin: const EdgeInsets.only(bottom: 8),
               padding: const EdgeInsets.all(12),
@@ -1047,14 +1050,14 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 children: [
                   Row(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.amber.withValues(alpha: 0.2),
-                          shape: BoxShape.circle,
+                      CircleAvatar(
+                          radius: 22,
+                          backgroundColor: Colors.green[100],
+                          backgroundImage: photo.isNotEmpty ? NetworkImage(photo) : null,
+                          child: photo.isEmpty
+                              ? const Icon(Icons.person, color: Colors.green)
+                              : null,
                         ),
-                        child: const Icon(Icons.emoji_events, color: Colors.amber, size: 20),
-                      ),
                       const SizedBox(width: 12),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1444,124 +1447,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
     );
   }
 
-  Widget _buildFeaturesGrid() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.9),
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Quick Actions',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.green,
-            ),
-          ),
-          const SizedBox(height: 16),
-          GridView.count(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: 2,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            children: [
-              _buildFeatureCard(
-                context,
-                'Student Enrollment',
-                Icons.school,
-                Colors.blue,
-                () => Navigator.pushNamed(context, '/student-enrollment'),
-              ),
-              _buildFeatureCard(
-                context,
-                'Demo/Lecture Results',
-                Icons.assessment,
-                Colors.green,
-                () => _showDemoLectureResults(context),
-              ),
-              _buildFeatureCard(
-                context,
-                'Course Catalog',
-                Icons.book,
-                Colors.orange,
-                () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Course Catalog coming soon!'),
-                    ),
-                  );
-                },
-              ),
-              _buildFeatureCard(
-                context,
-                'Progress Tracking',
-                Icons.trending_up,
-                Colors.purple,
-                () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Progress Tracking coming soon!'),
-                    ),
-                  );
-                },
-              ),
-              _buildFeatureCard(
-                context,
-                'Study Materials',
-                Icons.library_books,
-                Colors.teal,
-                () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Study Materials coming soon!'),
-                    ),
-                  );
-                },
-              ),
-              _buildFeatureCard(
-                context,
-                'Online Classes',
-                Icons.video_call,
-                Colors.red,
-                () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Online Classes coming soon!'),
-                    ),
-                  );
-                },
-              ),
-              _buildFeatureCard(
-                context,
-                'Contact Support',
-                Icons.support_agent,
-                Colors.indigo,
-                () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Contact Support coming soon!'),
-                    ),
-                  );
-                },
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+  
 
   Widget _buildFeatureCard(
     BuildContext context,

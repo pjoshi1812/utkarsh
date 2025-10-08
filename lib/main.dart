@@ -5,6 +5,7 @@ import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/student_enrollment_screen.dart';
 import 'screens/explore_screen.dart';
+import 'screens/explore_screen_2.dart';
 import 'screens/admin_dashboard_screen.dart';
 import 'screens/student_dashboard_screen.dart';
 import 'screens/admin_results_screen.dart';
@@ -38,17 +39,18 @@ class MainApp extends StatelessWidget {
         '/register': (context) => const RegisterScreen(),
         '/student-enrollment': (context) => const StudentEnrollmentScreen(),
         '/explore-more': (context) => const ExploreScreen(),
+        '/explore-more-2': (context) => const ExploreScreen2(),
         '/admin-dashboard': (context) => const AdminDashboardScreen(),
         '/student-dashboard': (context) => const StudentDashboardScreen(),
         '/student-profile': (context) => const StudentProfileScreen(),
         '/attendance': (context) => const AttendanceScreen(),
         '/content-management': (context) => const ContentManagementScreen(),
         '/attendance-data': (context) => const AttendanceDataScreen(),
-        '/admin-content-dashboard': (context) => const AdminContentDashboardScreen(),
+        '/admin-content-dashboard':
+            (context) => const AdminContentDashboardScreen(),
         '/admin-results': (context) => const AdminResultsScreen(),
         '/admin-students': (context) => const AdminStudentManagementScreen(),
         '/admin-explore': (context) => const AdminExploreManagementScreen(),
-        
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/student-notes') {
@@ -57,7 +59,8 @@ class MainApp extends StatelessWidget {
           final Board? board = args?['board'] as Board?;
           if (standard != null && board != null) {
             return MaterialPageRoute(
-              builder: (_) => StudentNotesScreen(standard: standard, board: board),
+              builder:
+                  (_) => StudentNotesScreen(standard: standard, board: board),
             );
           }
         }
@@ -67,7 +70,11 @@ class MainApp extends StatelessWidget {
           final Board? board = args?['board'] as Board?;
           if (standard != null && board != null) {
             return MaterialPageRoute(
-              builder: (_) => StudentAssignmentsScreen(standard: standard, board: board),
+              builder:
+                  (_) => StudentAssignmentsScreen(
+                    standard: standard,
+                    board: board,
+                  ),
             );
           }
         }
