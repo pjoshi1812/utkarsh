@@ -153,11 +153,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                           Icons.school,
                           Colors.orange,
                           () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Student Management coming soon!'),
-                              ),
-                            );
+                            Navigator.of(context).pushNamed('/admin-students');
                           },
                         ),
                       ],
@@ -225,180 +221,159 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder:
-          (context) => Container(
-            height: MediaQuery.of(context).size.height * 0.8,
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-            ),
-            child: Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.green[700],
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(20),
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.8,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.green[700],
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(20),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.people, color: Colors.white, size: 24),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Student Enrollments',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.people, color: Colors.white, size: 24),
-                      const SizedBox(width: 12),
-                      const Text(
-                        'Student Enrollments',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const Spacer(),
-                      IconButton(
-                        icon: const Icon(Icons.close, color: Colors.white),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ],
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    onPressed: () => Navigator.pop(context),
                   ),
-                ),
-                Expanded(
-                  child: StreamBuilder<QuerySnapshot>(
-                    stream:
-                        FirebaseFirestore.instance
-                            .collection('enrollments')
-                            .snapshots(),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
+                ],
+              ),
+            ),
+            Expanded(
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('enrollments')
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
 
-                      if (snapshot.hasError) {
-                        return Center(child: Text('Error: ${snapshot.error}'));
-                      }
+                  if (snapshot.hasError) {
+                    return Center(child: Text('Error: ${snapshot.error}'));
+                  }
 
-                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                        return const Center(
-                          child: Text(
-                            'No enrollments found',
-                            style: TextStyle(fontSize: 18, color: Colors.grey),
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return const Center(
+                      child: Text(
+                        'No enrollments found',
+                        style: TextStyle(fontSize: 18, color: Colors.grey),
+                      ),
+                    );
+                  }
+
+                  // Sort documents by enrollment date (descending)
+                  final sortedDocs = snapshot.data!.docs.toList()
+                    ..sort((a, b) {
+                      final aDate =
+                          (a.data() as Map<String, dynamic>)['enrollmentDate'] as Timestamp?;
+                      final bDate =
+                          (b.data() as Map<String, dynamic>)['enrollmentDate'] as Timestamp?;
+                      final aDateTime = aDate?.toDate() ?? DateTime(1970);
+                      final bDateTime = bDate?.toDate() ?? DateTime(1970);
+                      return bDateTime.compareTo(aDateTime);
+                    });
+
+                  return ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: sortedDocs.length,
+                    itemBuilder: (context, index) {
+                      final enrollment = sortedDocs[index].data() as Map<String, dynamic>;
+                      final enrollmentId = sortedDocs[index].id;
+
+                      final photo = (enrollment['profilePhotoUrl'] ?? '').toString().trim();
+
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: Colors.green[100],
+                            backgroundImage: photo.isNotEmpty ? NetworkImage(photo) : null,
+                            child: photo.isEmpty
+                                ? const Icon(Icons.person, color: Colors.green)
+                                : null,
                           ),
-                        );
-                      }
-
-                      // Sort documents by enrollment date
-                      final sortedDocs =
-                          snapshot.data!.docs.toList()..sort((a, b) {
-                            final aDate =
-                                (a.data()
-                                        as Map<
-                                          String,
-                                          dynamic
-                                        >)['enrollmentDate']
-                                    as Timestamp?;
-                            final bDate =
-                                (b.data()
-                                        as Map<
-                                          String,
-                                          dynamic
-                                        >)['enrollmentDate']
-                                    as Timestamp?;
-                            final aDateTime = aDate?.toDate() ?? DateTime(1970);
-                            final bDateTime = bDate?.toDate() ?? DateTime(1970);
-                            return bDateTime.compareTo(aDateTime);
-                          });
-
-                      return ListView.builder(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: sortedDocs.length,
-                        itemBuilder: (context, index) {
-                          final enrollment =
-                              sortedDocs[index].data() as Map<String, dynamic>;
-                          final enrollmentId = sortedDocs[index].id;
-
-                          return Card(
-                            margin: const EdgeInsets.only(bottom: 12),
-                            child: ListTile(
-                              title: Text(
-                                enrollment['studentName'] ?? 'Unknown',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
+                          title: Text(
+                            enrollment['studentName'] ?? 'Unknown',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Course: ${enrollment['course'] ?? 'N/A'}'),
+                              Text('Status: ${enrollment['status'] ?? 'pending'}'),
+                              Text('Type: ${enrollment['studentType'] ?? 'N/A'}'),
+                            ],
+                          ),
+                          trailing: PopupMenuButton<String>(
+                            onSelected: (value) => _handleEnrollmentAction(
+                              value,
+                              enrollmentId,
+                              enrollment,
+                            ),
+                            itemBuilder: (context) => [
+                              const PopupMenuItem(
+                                value: 'approve',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.check, color: Colors.green),
+                                    SizedBox(width: 8),
+                                    Text('Approve'),
+                                  ],
                                 ),
                               ),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Course: ${enrollment['course'] ?? 'N/A'}',
-                                  ),
-                                  Text(
-                                    'Status: ${enrollment['status'] ?? 'pending'}',
-                                  ),
-                                  Text(
-                                    'Type: ${enrollment['studentType'] ?? 'N/A'}',
-                                  ),
-                                ],
+                              const PopupMenuItem(
+                                value: 'reject',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.close, color: Colors.red),
+                                    SizedBox(width: 8),
+                                    Text('Reject'),
+                                  ],
+                                ),
                               ),
-                              trailing: PopupMenuButton<String>(
-                                onSelected:
-                                    (value) => _handleEnrollmentAction(
-                                      value,
-                                      enrollmentId,
-                                      enrollment,
-                                    ),
-                                itemBuilder:
-                                    (context) => [
-                                      const PopupMenuItem(
-                                        value: 'approve',
-                                        child: Row(
-                                          children: [
-                                            Icon(
-                                              Icons.check,
-                                              color: Colors.green,
-                                            ),
-                                            SizedBox(width: 8),
-                                            Text('Approve'),
-                                          ],
-                                        ),
-                                      ),
-                                      const PopupMenuItem(
-                                        value: 'reject',
-                                        child: Row(
-                                          children: [
-                                            Icon(
-                                              Icons.close,
-                                              color: Colors.red,
-                                            ),
-                                            SizedBox(width: 8),
-                                            Text('Reject'),
-                                          ],
-                                        ),
-                                      ),
-                                      const PopupMenuItem(
-                                        value: 'view',
-                                        child: Row(
-                                          children: [
-                                            Icon(
-                                              Icons.visibility,
-                                              color: Colors.blue,
-                                            ),
-                                            SizedBox(width: 8),
-                                            Text('View Details'),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
+                              const PopupMenuItem(
+                                value: 'view',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.visibility, color: Colors.blue),
+                                    SizedBox(width: 8),
+                                    Text('View Details'),
+                                  ],
+                                ),
                               ),
-                            ),
-                          );
-                        },
+                            ],
+                          ),
+                        ),
                       );
                     },
-                  ),
-                ),
-              ],
+                  );
+                },
+              ),
             ),
-          ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -441,72 +416,54 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   void _showEnrollmentDetails(Map<String, dynamic> enrollment) {
     showDialog(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Enrollment Details'),
-            content: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _buildDetailRow(
-                    'Student Name',
-                    enrollment['studentName'] ?? 'N/A',
+      builder: (context) => AlertDialog(
+        title: const Text('Enrollment Details'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Photo at top if present
+              if ((enrollment['profilePhotoUrl'] ?? '').toString().trim().isNotEmpty) ...[
+                Center(
+                  child: CircleAvatar(
+                    radius: 48,
+                    backgroundColor: Colors.green[100],
+                    backgroundImage: NetworkImage(
+                      (enrollment['profilePhotoUrl'] as String).trim(),
+                    ),
                   ),
-                  _buildDetailRow(
-                    'Student Type',
-                    enrollment['studentType'] ?? 'N/A',
-                  ),
-                  _buildDetailRow(
-                    'Contact',
-                    enrollment['studentContact'] ?? 'N/A',
-                  ),
-                  _buildDetailRow(
-                    'WhatsApp',
-                    enrollment['studentWhatsApp'] ?? 'N/A',
-                  ),
-                  _buildDetailRow('Email', enrollment['email'] ?? 'N/A'),
-                  _buildDetailRow(
-                    'School/College',
-                    enrollment['schoolCollege'] ?? 'N/A',
-                  ),
-                  _buildDetailRow('Address', enrollment['address'] ?? 'N/A'),
-                  _buildDetailRow(
-                    'Parent Name',
-                    enrollment['parentName'] ?? 'N/A',
-                  ),
-                  _buildDetailRow(
-                    'Parent Contact',
-                    enrollment['parentContact'] ?? 'N/A',
-                  ),
-                  _buildDetailRow(
-                    'Parent WhatsApp',
-                    enrollment['parentWhatsApp'] ?? 'N/A',
-                  ),
-                  _buildDetailRow(
-                    'Occupation',
-                    enrollment['occupation'] ?? 'N/A',
-                  ),
-                  _buildDetailRow(
-                    'Parent Email',
-                    enrollment['parentEmail'] ?? 'N/A',
-                  ),
-                  _buildDetailRow('Course', enrollment['course'] ?? 'N/A'),
-                  _buildDetailRow(
-                    'Previous Maths Marks',
-                    enrollment['previousMathsMarks'] ?? 'N/A',
-                  ),
-                  _buildDetailRow('Status', enrollment['status'] ?? 'pending'),
-                ],
+                ),
+                const SizedBox(height: 12),
+              ],
+              _buildDetailRow('Student Name', enrollment['studentName'] ?? 'N/A'),
+              _buildDetailRow('Student Type', enrollment['studentType'] ?? 'N/A'),
+              _buildDetailRow('Contact', enrollment['studentContact'] ?? 'N/A'),
+              _buildDetailRow('WhatsApp', enrollment['studentWhatsApp'] ?? 'N/A'),
+              _buildDetailRow('Email', enrollment['email'] ?? 'N/A'),
+              _buildDetailRow('School/College', enrollment['schoolCollege'] ?? 'N/A'),
+              _buildDetailRow('Address', enrollment['address'] ?? 'N/A'),
+              _buildDetailRow('Parent Name', enrollment['parentName'] ?? 'N/A'),
+              _buildDetailRow('Parent Contact', enrollment['parentContact'] ?? 'N/A'),
+              _buildDetailRow('Parent WhatsApp', enrollment['parentWhatsApp'] ?? 'N/A'),
+              _buildDetailRow('Occupation', enrollment['occupation'] ?? 'N/A'),
+              _buildDetailRow('Parent Email', enrollment['parentEmail'] ?? 'N/A'),
+              _buildDetailRow('Course', enrollment['course'] ?? 'N/A'),
+              _buildDetailRow(
+                'Previous Maths Marks',
+                enrollment['previousMathsMarks'] ?? 'N/A',
               ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Close'),
-              ),
+              _buildDetailRow('Status', enrollment['status'] ?? 'pending'),
             ],
           ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
     );
   }
 

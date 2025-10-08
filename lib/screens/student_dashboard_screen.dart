@@ -252,6 +252,13 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                 ),
                 _buildFeatureCard(
                   context,
+                  'My Profile',
+                  Icons.person,
+                  Colors.green,
+                  () => Navigator.pushNamed(context, '/student-profile'),
+                ),
+                _buildFeatureCard(
+                  context,
                   'Progress Tracking',
                   Icons.trending_up,
                   Colors.purple,

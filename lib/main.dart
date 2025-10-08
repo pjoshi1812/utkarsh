@@ -16,6 +16,8 @@ import 'screens/student_notes_screen.dart';
 import 'screens/student_assignments_screen.dart';
 import 'screens/admin_explore_management_screen.dart';
 import 'models/content_model.dart';
+import 'screens/student_profile_screen.dart';
+import 'screens/admin_student_management_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -38,12 +40,15 @@ class MainApp extends StatelessWidget {
         '/explore-more': (context) => const ExploreScreen(),
         '/admin-dashboard': (context) => const AdminDashboardScreen(),
         '/student-dashboard': (context) => const StudentDashboardScreen(),
+        '/student-profile': (context) => const StudentProfileScreen(),
         '/attendance': (context) => const AttendanceScreen(),
         '/content-management': (context) => const ContentManagementScreen(),
         '/attendance-data': (context) => const AttendanceDataScreen(),
         '/admin-content-dashboard': (context) => const AdminContentDashboardScreen(),
         '/admin-results': (context) => const AdminResultsScreen(),
+        '/admin-students': (context) => const AdminStudentManagementScreen(),
         '/admin-explore': (context) => const AdminExploreManagementScreen(),
+        
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/student-notes') {

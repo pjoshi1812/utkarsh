@@ -7,6 +7,13 @@ import 'package:flutter/foundation.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:file_picker/file_picker.dart';
 
+import 'dart:typed_data';
+
+  
+Uint8List? _photoBytes;
+String? _photoUrlPreview;
+bool _uploadingPhoto = false;
+
 class StudentEnrollmentScreen extends StatefulWidget {
   const StudentEnrollmentScreen({super.key});
 
@@ -63,6 +70,38 @@ class _StudentEnrollmentScreenState extends State<StudentEnrollmentScreen> {
     super.dispose();
   }
 
+  Future<void> _pickPhoto() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      withData: true,
+      allowMultiple: false,
+    );
+    if (result == null || result.files.isEmpty) return;
+    final file = result.files.first;
+    if (file.bytes == null) return;
+    setState(() {
+      _photoBytes = file.bytes!;
+    });
+  }
+
+  Future<String?> _uploadPhotoIfAny(String uid) async {
+    if (_photoBytes == null) return null;
+    try {
+      setState(() => _uploadingPhoto = true);
+      final ref = FirebaseStorage.instance.ref().child('profile_photos').child('$uid.jpg');
+      await ref.putData(_photoBytes!, SettableMetadata(contentType: 'image/jpeg'));
+      final url = await ref.getDownloadURL();
+      setState(() {
+        _uploadingPhoto = false;
+        _photoUrlPreview = url;
+      });
+      return url;
+    } catch (_) {
+      setState(() => _uploadingPhoto = false);
+      return null;
+    }
+  }
+
   void _updateWhatsAppFields() {
     setState(() {
       if (_studentWhatsAppOption == 'Same as above') {
@@ -92,6 +131,9 @@ class _StudentEnrollmentScreenState extends State<StudentEnrollmentScreen> {
         return;
       }
 
+      // Upload photo if any
+      final uploadedUrl = await _uploadPhotoIfAny(user.uid);
+
       // Create enrollment data
       final enrollmentData = {
         'studentType': _studentType,
@@ -111,6 +153,8 @@ class _StudentEnrollmentScreenState extends State<StudentEnrollmentScreen> {
         'parentUid': user.uid,
         'enrollmentDate': FieldValue.serverTimestamp(),
         'status': 'pending',
+        // Save profile photo URL
+        'profilePhotoUrl': uploadedUrl ?? '',
       };
 
       // Save to Firestore
@@ -145,6 +189,9 @@ class _StudentEnrollmentScreenState extends State<StudentEnrollmentScreen> {
         _studentWhatsAppOption = 'Same as above';
         _parentWhatsAppOption = 'Same as above';
         _selectedCourse = '8th';
+        // Reset local photo state
+        _photoBytes = null;
+        _photoUrlPreview = null;
       });
 
     } catch (e) {
@@ -284,6 +331,42 @@ class _StudentEnrollmentScreenState extends State<StudentEnrollmentScreen> {
                               borderRadius: BorderRadius.circular(10),
                             ),
                             prefixIcon: const Icon(Icons.person, color: Colors.green),
+                          ),
+                        ),
+                        // Profile Photo section
+                        Center(
+                          child: Column(
+                            children: [
+                              CircleAvatar(
+                                radius: 48,
+                                backgroundColor: Colors.green[100],
+                                backgroundImage: _photoBytes != null
+                                    ? MemoryImage(_photoBytes!)
+                                    : (_photoUrlPreview != null && _photoUrlPreview!.isNotEmpty)
+                                        ? NetworkImage(_photoUrlPreview!) as ImageProvider
+                                        : null,
+                                child: (_photoBytes == null &&
+                                        (_photoUrlPreview == null || _photoUrlPreview!.isEmpty))
+                                    ? const Icon(Icons.person, size: 48, color: Colors.green)
+                                    : null,
+                              ),
+                              const SizedBox(height: 8),
+                              ElevatedButton.icon(
+                                onPressed: _uploadingPhoto ? null : _pickPhoto,
+                                icon: _uploadingPhoto
+                                    ? const SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(
+                                            strokeWidth: 2, color: Colors.white))
+                                    : const Icon(Icons.photo),
+                                label: Text(_uploadingPhoto ? 'Processing...' : 'Add Profile Photo'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.green[700],
+                                  foregroundColor: Colors.white,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -621,4 +704,4 @@ class _StudentEnrollmentScreenState extends State<StudentEnrollmentScreen> {
       ),
     );
   }
-} 
+}
