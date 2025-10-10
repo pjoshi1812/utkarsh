@@ -224,7 +224,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
               children: [
                 _buildFeatureCard(
                   context,
-                  'Course Materials',
+                  'Notes',
                   Icons.book,
                   Colors.blue,
                   () => _openNotesForEnrolledClass(context),
@@ -257,34 +257,8 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                   Colors.green,
                   () => Navigator.pushNamed(context, '/student-profile'),
                 ),
-                _buildFeatureCard(
-                  context,
-                  'Progress Tracking',
-                  Icons.trending_up,
-                  Colors.purple,
-                  () => _showProgress(context),
-                ),
-                _buildFeatureCard(
-                  context,
-                  'Online Classes',
-                  Icons.video_call,
-                  Colors.red,
-                  () => _showOnlineClasses(context),
-                ),
-                _buildFeatureCard(
-                  context,
-                  'Study Schedule',
-                  Icons.schedule,
-                  Colors.teal,
-                  () => _showStudySchedule(context),
-                ),
-                _buildFeatureCard(
-                  context,
-                  'Contact Teacher',
-                  Icons.message,
-                  Colors.indigo,
-                  () => _showContactTeacher(context),
-                ),
+               
+               
                 _buildFeatureCard(
                   context,
                   'Submit Feedback',

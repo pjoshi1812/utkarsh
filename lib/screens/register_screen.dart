@@ -15,7 +15,9 @@ class RegisterScreen extends StatefulWidget {
 class _RegisterScreenState extends State<RegisterScreen> {
   bool _isValidEmail(String email) {
     // Basic email validation regex
-    final emailRegex = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+    final emailRegex = RegExp(
+      r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+    );
     return emailRegex.hasMatch(email);
   }
 
@@ -33,7 +35,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!_isValidEmail(emailController.text.trim())) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please enter a valid email address (e.g., user@domain.com)'),
+          content: Text(
+            'Please enter a valid email address (e.g., user@domain.com)',
+          ),
           backgroundColor: Colors.red,
         ),
       );
@@ -60,45 +64,44 @@ class _RegisterScreenState extends State<RegisterScreen> {
       // Create user with email and password
       UserCredential userCredential = await FirebaseAuth.instance
           .createUserWithEmailAndPassword(
-        email: emailController.text.trim(),
-        password: passwordController.text.trim(),
-      );
-
-             // Store user info in Firestore
-       final user = userCredential.user;
-       if (user != null) {
-         await FirebaseFirestore.instance
-             .collection('users')
-             .doc(user.uid)
-             .set({
-           'uid': user.uid,
-           'name': studentNameController.text.trim(),
-           'email': emailController.text.trim(),
-           'createdAt': FieldValue.serverTimestamp(),
-           'role': 'parent',
-           'emailVerified': false,
-         });
-
-                   // Send email verification
-          try {
-            await user.sendEmailVerification();
-          } catch (e) {
-            // Continue with registration even if email verification fails
-          }
-
-                   ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Registration successful! Please check your email to verify your account.'),
-              backgroundColor: Colors.green,
-              duration: Duration(seconds: 5),
-            ),
+            email: emailController.text.trim(),
+            password: passwordController.text.trim(),
           );
 
-          // Navigate to explore page after registration
-          if (context.mounted) {
-            Navigator.pushReplacementNamed(context, '/explore-more');
-          }
-       }
+      // Store user info in Firestore
+      final user = userCredential.user;
+      if (user != null) {
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+          'uid': user.uid,
+          'name': studentNameController.text.trim(),
+          'email': emailController.text.trim(),
+          'createdAt': FieldValue.serverTimestamp(),
+          'role': 'parent',
+          'emailVerified': false,
+        });
+
+        // Send email verification
+        try {
+          await user.sendEmailVerification();
+        } catch (e) {
+          // Continue with registration even if email verification fails
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Registration successful! Please check your email to verify your account.',
+            ),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 5),
+          ),
+        );
+
+        // Navigate to explore page after registration
+        if (context.mounted) {
+          Navigator.pushReplacementNamed(context, '/explore-more');
+        }
+      }
     } on FirebaseAuthException catch (e) {
       String errorMessage = 'Registration failed';
       if (e.code == 'weak-password') {
@@ -113,7 +116,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Registration failed: $e'), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text('Registration failed: $e'),
+          backgroundColor: Colors.red,
+        ),
       );
     } finally {
       setState(() {
@@ -156,9 +162,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
         if (!docSnapshot.exists) {
           await userDoc.set({
             'uid': user.uid,
-            'name': studentNameController.text.trim().isNotEmpty 
-                ? studentNameController.text.trim() 
-                : user.displayName,
+            'name':
+                studentNameController.text.trim().isNotEmpty
+                    ? studentNameController.text.trim()
+                    : user.displayName,
             'email': user.email,
             'photoURL': user.photoURL,
             'createdAt': FieldValue.serverTimestamp(),
@@ -166,17 +173,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
           });
         }
       }
-             ScaffoldMessenger.of(context).showSnackBar(
-         const SnackBar(
-           content: Text('Registration successful!'),
-           backgroundColor: Colors.green,
-         ),
-       );
-       
-       // Navigate to explore page after registration
-       if (context.mounted) {
-         Navigator.pushReplacementNamed(context, '/explore-more');
-       }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Registration successful!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      // Navigate to explore page after registration
+      if (context.mounted) {
+        Navigator.pushReplacementNamed(context, '/explore-more');
+      }
     } catch (e) {
       ScaffoldMessenger.of(
         context,
@@ -393,24 +400,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     vertical: 14,
                                   ),
                                 ),
-                                onPressed: _isLoading ? null : signUpWithEmailPassword,
-                                child: _isLoading
-                                    ? const SizedBox(
-                                        height: 20,
-                                        width: 20,
-                                        child: CircularProgressIndicator(
-                                          color: Colors.white,
-                                          strokeWidth: 2,
+                                onPressed:
+                                    _isLoading ? null : signUpWithEmailPassword,
+                                child:
+                                    _isLoading
+                                        ? const SizedBox(
+                                          height: 20,
+                                          width: 20,
+                                          child: CircularProgressIndicator(
+                                            color: Colors.white,
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                        : const Text(
+                                          "Register",
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
                                         ),
-                                      )
-                                    : const Text(
-                                        "Register",
-                                        style: TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white,
-                                        ),
-                                      ),
                               ),
                             ),
                             const SizedBox(height: 18),
