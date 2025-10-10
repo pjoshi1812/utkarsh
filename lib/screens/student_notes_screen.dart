@@ -272,16 +272,30 @@ class _StudentNotesScreenState extends State<StudentNotesScreen> {
   }
 
   void _viewNote(ContentItem note) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => ContentViewerScreen(
-          title: note.title,
-          fileUrl: note.fileUrl,
-          fileType: note.fileType,
-        ),
-      ),
+  final url = note.fileUrl.trim();
+  final uri = Uri.tryParse(url);
+  final isValid = url.isNotEmpty &&
+      uri != null &&
+      (uri.scheme == 'http' || uri.scheme == 'https') &&
+      uri.host.isNotEmpty;
+
+  if (!isValid) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('File not available to view. Please try again later.')),
     );
+    return;
   }
+
+  Navigator.of(context).push(
+    MaterialPageRoute(
+      builder: (context) => ContentViewerScreen(
+        title: note.title,
+        fileUrl: url,
+        fileType: note.fileType,
+      ),
+    ),
+  );
+}
 
   String _formatDate(DateTime date) {
     final now = DateTime.now();

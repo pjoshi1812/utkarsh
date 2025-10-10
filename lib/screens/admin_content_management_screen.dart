@@ -8,6 +8,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../models/content_model.dart';
 import 'content_viewer_screen.dart';
+import 'dart:io' show File;
 
 class AdminContentManagementScreen extends StatefulWidget {
   final Standard standard;
@@ -1330,36 +1331,39 @@ class _AdminContentManagementScreenState
           children: [
             Text(content['description'] ?? ''),
             const SizedBox(height: 4),
-            Row(
-              children: [
-                Icon(Icons.category, size: 16, color: Colors.grey[600]),
-                const SizedBox(width: 4),
-                Text(
-                  contentType.toUpperCase(),
-                  style: TextStyle(
-                    color: iconColor,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Icon(Icons.subject, size: 16, color: Colors.grey[600]),
-                const SizedBox(width: 4),
-                Text(
-                  content['subject'] ?? 'No subject',
-                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                ),
-                const SizedBox(width: 16),
-                if (content['totalMarks'] != null) ...[
-                  Icon(Icons.star, size: 16, color: Colors.amber[600]),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${content['totalMarks']} marks',
-                    style: TextStyle(color: Colors.amber[700], fontSize: 12),
-                  ),
-                ],
-              ],
-            ),
+            SingleChildScrollView(
+  scrollDirection: Axis.horizontal,
+  child: Row(
+    children: [
+      Icon(Icons.category, size: 16, color: Colors.grey[600]),
+      const SizedBox(width: 4),
+      Text(
+        contentType.toUpperCase(),
+        style: TextStyle(
+          color: iconColor,
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      const SizedBox(width: 16),
+      Icon(Icons.subject, size: 16, color: Colors.grey[600]),
+      const SizedBox(width: 4),
+      Text(
+        content['subject'] ?? 'No subject',
+        style: TextStyle(color: Colors.grey[600], fontSize: 12),
+      ),
+      const SizedBox(width: 16),
+      if (content['totalMarks'] != null) ...[
+        Icon(Icons.star, size: 16, color: Colors.amber[600]),
+        const SizedBox(width: 4),
+        Text(
+          '${content['totalMarks']} marks',
+          style: TextStyle(color: Colors.amber[700], fontSize: 12),
+        ),
+      ],
+    ],
+  ),
+),
             if (content['fileName'] != null) ...[
               const SizedBox(height: 4),
               Row(
@@ -1378,21 +1382,25 @@ class _AdminContentManagementScreenState
             ],
           ],
         ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.visibility, color: Colors.blue),
-              onPressed: () => _viewContent(content),
-              tooltip: 'View Details',
-            ),
-            IconButton(
-              icon: const Icon(Icons.close, color: Colors.red),
-              onPressed: () => _deleteContent(content['id']),
-              tooltip: 'Delete',
-            ),
-          ],
-        ),
+        trailing: FittedBox(
+  fit: BoxFit.scaleDown,
+  alignment: Alignment.centerRight,
+  child: Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      IconButton(
+        icon: const Icon(Icons.visibility, color: Colors.blue),
+        onPressed: () => _viewContent(content),
+        tooltip: 'View Details',
+      ),
+      IconButton(
+        icon: const Icon(Icons.close, color: Colors.red),
+        onPressed: () => _deleteContent(content['id']),
+        tooltip: 'Delete',
+      ),
+    ],
+  ),
+),
       ),
     );
   }
@@ -1446,71 +1454,81 @@ class _AdminContentManagementScreenState
   }
 
   void _viewContent(Map<String, dynamic> content) {
-    final contentType = content['type'] as String? ?? '';
+  final contentType = content['type'] as String? ?? '';
 
-    if (contentType == 'descriptive' &&
-        content['fileUrl'] != null &&
-        content['fileUrl'].isNotEmpty) {
-      // For descriptive exams with PDF files, open the content viewer
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder:
-              (context) => ContentViewerScreen(
-                title: content['title'] ?? 'Descriptive Exam',
-                fileUrl: content['fileUrl'],
-                fileType: 'pdf',
-              ),
-        ),
+  if (contentType == 'descriptive' &&
+      content['fileUrl'] != null &&
+      content['fileUrl'].isNotEmpty) {
+
+    final String url = content['fileUrl'].toString().trim();
+    final Uri? uri = Uri.tryParse(url);
+    final bool isValid = uri != null &&
+        (uri.scheme == 'http' || uri.scheme == 'https') &&
+        uri.host.isNotEmpty;
+
+    if (!isValid) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Invalid file URL for this item.')),
       );
-    } else if (contentType == 'mcq') {
-      // For MCQ tests, show test details and allow taking the test
-      _showMCQTestDetails(content);
-    } else {
-      // For other content types, show details dialog
-      _showContentDetails(content);
+      return;
     }
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => ContentViewerScreen(
+          title: content['title'] ?? 'Descriptive Exam',
+          fileUrl: url,
+          fileType: 'pdf',
+        ),
+      ),
+    );
+  } else if (contentType == 'mcq') {
+    _showMCQTestDetails(content);
+  } else {
+    _showContentDetails(content);
   }
+}
 
   void _showContentDetails(Map<String, dynamic> content) {
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: Text(content['title'] ?? 'Content Details'),
-            content: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text('Description: ${content['description'] ?? 'N/A'}'),
-                  const SizedBox(height: 8),
-                  Text('Subject: ${content['subject'] ?? 'N/A'}'),
-                  const SizedBox(height: 8),
-                  Text('Type: ${content['type'] ?? 'N/A'}'),
-                  if (content['totalMarks'] != null) ...[
-                    const SizedBox(height: 8),
-                    Text('Total Marks: ${content['totalMarks']}'),
-                  ],
-                  if (content['timeLimit'] != null) ...[
-                    const SizedBox(height: 8),
-                    Text('Time Limit: ${content['timeLimit']} minutes'),
-                  ],
-                  if (content['fileName'] != null) ...[
-                    const SizedBox(height: 8),
-                    Text('File: ${content['fileName']}'),
-                  ],
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Close'),
-              ),
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16),
+      title: Text(content['title'] ?? 'Content Details'),
+      content: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Description: ${content['description'] ?? 'N/A'}'),
+            const SizedBox(height: 8),
+            Text('Subject: ${content['subject'] ?? 'N/A'}'),
+            const SizedBox(height: 8),
+            Text('Type: ${content['type'] ?? 'N/A'}'),
+            if (content['totalMarks'] != null) ...[
+              const SizedBox(height: 8),
+              Text('Total Marks: ${content['totalMarks']}'),
             ],
-          ),
-    );
-  }
+            if (content['timeLimit'] != null) ...[
+              const SizedBox(height: 8),
+              Text('Time Limit: ${content['timeLimit']} minutes'),
+            ],
+            if (content['fileName'] != null) ...[
+              const SizedBox(height: 8),
+              Text('File: ${content['fileName']}'),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Close'),
+        ),
+      ],
+    ),
+  );
+}
 
   void _showMCQTestDetails(Map<String, dynamic> content) {
     showDialog(
@@ -1818,210 +1836,199 @@ class _AdminContentManagementScreenState
 
   bool _hasValidFile() {
     // Check if we have either file bytes (web) or file path (mobile/desktop)
-    return _selectedFileBytes != null || _selectedFilePath != null;
+    return _selectedFileBytes != null;
   }
 
   Future<void> _saveContent() async {
-    if (!_formKey.currentState!.validate()) return;
+  if (!_formKey.currentState!.validate()) return;
 
-    // Check if file is required and selected
-    if ((widget.contentType == ContentType.assignment ||
-            widget.contentType == ContentType.notes ||
-            widget.contentType == ContentType.descriptive) &&
-        !_hasValidFile()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            widget.contentType == ContentType.descriptive
-                ? 'Please select a PDF file for descriptive exam'
-                : 'Please select a PDF file',
-          ),
-          backgroundColor: Colors.red,
+  // 1) On mobile/desktop, make sure bytes are loaded from path before we validate
+  if (_selectedFileBytes == null && _selectedFilePath != null && !kIsWeb) {
+    try {
+      _selectedFileBytes = await File(_selectedFilePath!).readAsBytes();
+    } catch (_) {
+      // swallow and let validation below handle it
+    }
+  }
+
+  // 2) Validate presence of a file for types that require it
+  final bool fileIsRequired =
+      widget.contentType == ContentType.assignment ||
+      widget.contentType == ContentType.notes ||
+      widget.contentType == ContentType.descriptive;
+
+  if (fileIsRequired && _selectedFileBytes == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          widget.contentType == ContentType.descriptive
+              ? 'Please select a PDF file for descriptive exam'
+              : 'Please select a PDF file',
         ),
+        backgroundColor: Colors.red,
+      ),
+    );
+    return;
+  }
+
+  setState(() {
+    _isUploading = true;
+    _uploadProgress = 0.0;
+  });
+
+  try {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) throw Exception('User not authenticated');
+
+    String? downloadUrl;
+    String? filePath;
+
+    // 3) Upload only when bytes are present (prevents 0-byte uploads)
+    if (fileIsRequired && _selectedFileBytes != null) {
+      final String timePrefix = DateTime.now().millisecondsSinceEpoch.toString();
+      final String safeName = (_selectedFileName ?? 'file.pdf').replaceAll("/", "_");
+
+      // Determine storage path based on content type
+      if (widget.contentType == ContentType.descriptive) {
+        filePath = 'descriptive_exams/${widget.standard.standardDisplayName}/${timePrefix}_$safeName';
+      } else {
+        filePath = 'content/${timePrefix}_$safeName';
+      }
+
+      final Reference storageRef = FirebaseStorage.instance.ref().child(filePath);
+
+      final SettableMetadata metadata = SettableMetadata(
+        contentType: 'application/pdf',
+        customMetadata: {
+          'uploadedBy': user.uid,
+          'title': _titleController.text,
+          'type': widget.contentType.name,
+        },
       );
-      return;
+
+      final UploadTask task = storageRef.putData(_selectedFileBytes!, metadata);
+      task.snapshotEvents.listen((TaskSnapshot snap) {
+        if (snap.totalBytes > 0) {
+          setState(() {
+            _uploadProgress = snap.bytesTransferred / snap.totalBytes;
+          });
+        }
+      });
+
+      final TaskSnapshot snapshot = await task;
+      downloadUrl = await snapshot.ref.getDownloadURL();
     }
 
-    // Check if MCQ questions are added
-    if (widget.contentType == ContentType.mcq && _mcqQuestions.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please add at least one MCQ question'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
+    // 4) Guard: file-required types must yield a valid URL
+    if (fileIsRequired && (downloadUrl == null || downloadUrl.isEmpty)) {
+      throw Exception('Upload failed or no file selected. Please reselect the file and try again.');
     }
+
+    // 5) Build content document
+    final contentData = {
+      'title': _titleController.text,
+      'description': _descriptionController.text,
+      'type': widget.contentType.name,
+      'fileUrl': downloadUrl ?? '',
+      'filePath': filePath ?? '',
+      'fileName': _selectedFileName ?? '',
+      'fileType': 'pdf',
+      'fileSize': _selectedFileBytes?.length ?? 0,
+      'uploadDate': Timestamp.now(),
+      'uploadedBy': user.uid,
+      'targetCourses': ['Basic Mathematics'], // Default course
+      'targetStandards': [widget.standard.standardDisplayName],
+      'subject': _selectedSubject,
+      'isActive': true,
+      'dueDate': widget.contentType == ContentType.assignment && _dueDate != null
+          ? Timestamp.fromDate(_dueDate!)
+          : null,
+      'isWebFile': kIsWeb,
+      'isDescriptiveExam': widget.contentType == ContentType.descriptive,
+      'standard': widget.standard.standardDisplayName,
+      'board': widget.board.boardDisplayName,
+      'chapterNumber': _chapterNumberController.text,
+      'chapterName': _chapterNameController.text,
+      'tags': _tags,
+      'totalMarks': _totalMarksController.text.isNotEmpty
+          ? int.tryParse(_totalMarksController.text)
+          : _mcqQuestions.isNotEmpty
+              ? _mcqQuestions.fold<int>(0, (sum, q) => sum + (q['marks'] as int))
+              : null,
+      'timeLimit': _timeLimitController.text.isNotEmpty
+          ? int.tryParse(_timeLimitController.text)
+          : null,
+      'instructions': _instructionsController.text.isNotEmpty
+          ? _instructionsController.text
+          : null,
+      'questions': _mcqQuestions,
+    };
+
+    await FirebaseFirestore.instance.collection('content').add(contentData);
+
+    // 6) Reset form
+    _titleController.clear();
+    _descriptionController.clear();
+    _chapterNumberController.clear();
+    _chapterNameController.clear();
+    _totalMarksController.clear();
+    _timeLimitController.clear();
+    _instructionsController.clear();
+    _tagController.clear();
+    _questionController.clear();
+    _optionAController.clear();
+    _optionBController.clear();
+    _optionCController.clear();
+    _optionDController.clear();
+    _explanationController.clear();
 
     setState(() {
-      _isUploading = true;
+      _dueDate = null;
+      _selectedFileName = null;
+      _selectedFilePath = null;
+      _selectedFileBytes = null;
+      _tags.clear();
+      _mcqQuestions.clear();
+      _selectedCorrectAnswer = 'A';
+      _questionMarks = 1;
+      _isUploading = false;
       _uploadProgress = 0.0;
     });
 
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) throw Exception('User not authenticated');
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Content saved successfully!'),
+        backgroundColor: Colors.green,
+      ),
+    );
 
-      String? downloadUrl;
-      String? filePath;
-
-      // Upload file to Firebase Storage if file is selected
-      if (_hasValidFile() && _selectedFileBytes != null) {
-        final String timePrefix =
-            DateTime.now().millisecondsSinceEpoch.toString();
-        final String safeName = _selectedFileName!.replaceAll("/", "_");
-
-        // Determine storage path based on content type
-        if (widget.contentType == ContentType.descriptive) {
-          filePath =
-              'descriptive_exams/${widget.standard.standardDisplayName}/${timePrefix}_${safeName}';
-        } else {
-          filePath = 'content/${timePrefix}_${safeName}';
-        }
-
-        final Reference storageRef = FirebaseStorage.instance.ref().child(
-          filePath,
-        );
-
-        final SettableMetadata metadata = SettableMetadata(
-          contentType: 'application/pdf',
-          customMetadata: {
-            'uploadedBy': user.uid,
-            'title': _titleController.text,
-            'type': widget.contentType.name,
-          },
-        );
-
-        final UploadTask task = storageRef.putData(
-          _selectedFileBytes!,
-          metadata,
-        );
-        task.snapshotEvents.listen((TaskSnapshot snap) {
-          if (snap.totalBytes > 0) {
-            setState(() {
-              _uploadProgress = snap.bytesTransferred / snap.totalBytes;
-            });
-          }
-        });
-
-        final TaskSnapshot snapshot = await task;
-        downloadUrl = await snapshot.ref.getDownloadURL();
-      }
-
-      // Save content metadata to Firestore
-      final contentData = {
-        'title': _titleController.text,
-        'description': _descriptionController.text,
-        'type': widget.contentType.name,
-        'fileUrl': downloadUrl ?? '',
-        'filePath': filePath ?? '',
-        'fileName': _selectedFileName ?? '',
-        'fileType': 'pdf',
-        'fileSize': _selectedFileBytes?.length ?? 0,
-        'uploadDate': Timestamp.now(),
-        'uploadedBy': user.uid,
-        'targetCourses': ['Basic Mathematics'], // Default course
-        'targetStandards': [widget.standard.standardDisplayName],
-        'subject': _selectedSubject,
-        'isActive': true,
-        'dueDate':
-            widget.contentType == ContentType.assignment && _dueDate != null
-                ? Timestamp.fromDate(_dueDate!)
-                : null,
-        'isWebFile': kIsWeb,
-        'isDescriptiveExam': widget.contentType == ContentType.descriptive,
-        'standard': widget.standard.standardDisplayName,
-        'board': widget.board.boardDisplayName,
-        'chapterNumber': _chapterNumberController.text,
-        'chapterName': _chapterNameController.text,
-        'tags': _tags,
-        'totalMarks':
-            _totalMarksController.text.isNotEmpty
-                ? int.tryParse(_totalMarksController.text)
-                : _mcqQuestions.isNotEmpty
-                ? _mcqQuestions.fold(0, (sum, q) => sum + (q['marks'] as int))
-                : null,
-        'timeLimit':
-            _timeLimitController.text.isNotEmpty
-                ? int.tryParse(_timeLimitController.text)
-                : null,
-        'instructions':
-            _instructionsController.text.isNotEmpty
-                ? _instructionsController.text
-                : null,
-        'questions': _mcqQuestions,
-      };
-
-      await FirebaseFirestore.instance.collection('content').add(contentData);
-
-      // Reset form
-      _titleController.clear();
-      _descriptionController.clear();
-      _chapterNumberController.clear();
-      _chapterNameController.clear();
-      _totalMarksController.clear();
-      _timeLimitController.clear();
-      _instructionsController.clear();
-      _tagController.clear();
-      _questionController.clear();
-      _optionAController.clear();
-      _optionBController.clear();
-      _optionCController.clear();
-      _optionDController.clear();
-      _explanationController.clear();
-      setState(() {
-        _dueDate = null;
-        _selectedFileName = null;
-        _selectedFilePath = null;
-        _selectedFileBytes = null;
-        _tags.clear();
-        _mcqQuestions.clear();
-        _selectedCorrectAnswer = 'A';
-        _questionMarks = 1;
-        _isUploading = false;
-        _uploadProgress = 0.0;
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Content saved successfully!'),
-          backgroundColor: Colors.green,
-        ),
-      );
-
-      // Navigate back to content list
-      Navigator.of(context).pop();
-
-      // Refresh content list if in edit mode
-      if (widget.isEditMode) {
-        _loadContent();
-      }
-    } catch (e) {
-      String errorMessage = 'Error saving content: $e';
-
-      // Provide more helpful error messages
-      if (e.toString().contains('CORS')) {
-        errorMessage =
-            'CORS Error: Configure Firebase Storage CORS (see FIREBASE_STORAGE_CORS_SETUP.md).';
-      } else if (e.toString().contains('permission')) {
-        errorMessage = 'Permission Error: Check Firebase Storage rules.';
-      } else if (e.toString().contains('network')) {
-        errorMessage = 'Network Error: Check your internet connection.';
-      }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(errorMessage),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 8),
-        ),
-      );
-      setState(() {
-        _isUploading = false;
-        _uploadProgress = 0.0;
-      });
+    Navigator.of(context).pop();
+    if (widget.isEditMode) {
+      _loadContent();
     }
+  } catch (e) {
+    String errorMessage = 'Error saving content: $e';
+    if (e.toString().contains('CORS')) {
+      errorMessage = 'CORS Error: Configure Firebase Storage CORS (see FIREBASE_STORAGE_CORS_SETUP.md).';
+    } else if (e.toString().contains('permission')) {
+      errorMessage = 'Permission Error: Check Firebase Storage rules.';
+    } else if (e.toString().contains('network')) {
+      errorMessage = 'Network Error: Check your internet connection.';
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(errorMessage),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 8),
+      ),
+    );
+    setState(() {
+      _isUploading = false;
+      _uploadProgress = 0.0;
+    });
   }
+}
 
   void _showAddContentDialog() {
     Navigator.of(context).push(

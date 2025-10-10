@@ -633,10 +633,10 @@ class _ContentManagementScreenState extends State<ContentManagementScreen> {
       }
 
       final result = await FilePicker.platform.pickFiles(
-        type: fileType,
-        allowedExtensions: allowedExtensions,
-        allowMultiple: false,
-        withData: true,
+          type: FileType.custom,
+          allowedExtensions: ['pdf'],
+          allowMultiple: false,
+          withData: true,
       );
 
       if (result != null) {

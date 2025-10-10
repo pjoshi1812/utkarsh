@@ -49,15 +49,30 @@ class _ContentViewerScreenState extends State<ContentViewerScreen> {
 
   Future<void> _prepare() async {
     try {
-      // Block screenshots/recording on mobile only (plugin not available on web)
+      // Block screenshots/recording on mobile only
       if (!kIsWeb) {
         await ScreenProtector.preventScreenshotOn();
       }
 
+      // Validate URL once
+      final String url = widget.fileUrl.trim();
+      final Uri? uri = Uri.tryParse(url);
+      final bool valid = url.isNotEmpty &&
+          uri != null &&
+          (uri.scheme == 'http' || uri.scheme == 'https') &&
+          (kIsWeb || uri.host.isNotEmpty);
+
+      if (!valid) {
+        setState(() {
+          _error = 'Invalid file URL.';
+          _loading = false;
+        });
+        return;
+      }
+
       if (_isPdf) {
         if (kIsWeb) {
-          // Web: open in a new tab using the browser
-          final Uri uri = Uri.parse(widget.fileUrl);
+          // Web: open in a new tab using the browser (use pre-validated uri)
           await launchUrl(uri, mode: LaunchMode.externalApplication);
           setState(() {
             _loading = false;
@@ -67,7 +82,9 @@ class _ContentViewerScreenState extends State<ContentViewerScreen> {
 
         final dir = await getTemporaryDirectory();
         final file = File('${dir.path}/temp_${DateTime.now().millisecondsSinceEpoch}.pdf');
-        final resp = await http.get(Uri.parse(widget.fileUrl));
+
+        // Use pre-validated uri
+        final resp = await http.get(uri);
         if (resp.statusCode >= 200 && resp.statusCode < 300) {
           await file.writeAsBytes(resp.bodyBytes);
           setState(() {
@@ -142,6 +159,3 @@ class _ContentViewerScreenState extends State<ContentViewerScreen> {
     );
   }
 }
-
-
-

@@ -354,16 +354,30 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen> {
   }
 
   void _viewAssignment(ContentItem assignment) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => ContentViewerScreen(
-          title: assignment.title,
-          fileUrl: assignment.fileUrl,
-          fileType: assignment.fileType,
-        ),
-      ),
+  final url = assignment.fileUrl.trim();
+  final uri = Uri.tryParse(url);
+  final isValid = url.isNotEmpty &&
+      uri != null &&
+      (uri.scheme == 'http' || uri.scheme == 'https') &&
+      uri.host.isNotEmpty;
+
+  if (!isValid) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('File not available to view. Please try again later.')),
     );
+    return;
   }
+
+  Navigator.of(context).push(
+    MaterialPageRoute(
+      builder: (context) => ContentViewerScreen(
+        title: assignment.title,
+        fileUrl: url,
+        fileType: assignment.fileType,
+      ),
+    ),
+  );
+}
 
   String _formatDate(DateTime date) {
     final now = DateTime.now();
