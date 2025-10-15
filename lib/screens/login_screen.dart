@@ -32,12 +32,35 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
+    // Validate email format
+    if (!_isValidEmail(emailController.text.trim())) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a valid email address'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Validate password strength (min 6 to avoid blocking legacy users)
+    final pw = passwordController.text;
+    if (pw.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Password must be at least 6 characters'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     try {
       setState(() {
         _isLoading = true;
       });
 
-      final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+      final userCredential = await _auth.signInWithEmailAndPassword(
         email: emailController.text.trim(),
         password: passwordController.text,
       );
@@ -46,10 +69,10 @@ class _LoginScreenState extends State<LoginScreen> {
         // Check if user is admin/teacher
         if (emailController.text.trim() == 'utkarshacademy20@gmail.com') {
           // Admin/Teacher login
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Welcome Admin!'), backgroundColor: Colors.green),
-          );
-          if (context.mounted) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Welcome Admin!'), backgroundColor: Colors.green),
+            );
             Navigator.pushReplacementNamed(context, '/admin-dashboard');
           }
         } else {
@@ -63,18 +86,18 @@ class _LoginScreenState extends State<LoginScreen> {
 
           if (enrollmentQuery.docs.isNotEmpty) {
             // Student has approved enrollment
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Welcome Student!'), backgroundColor: Colors.green),
-            );
-            if (context.mounted) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Welcome Student!'), backgroundColor: Colors.green),
+              );
               Navigator.pushReplacementNamed(context, '/student-dashboard');
             }
           } else {
             // Regular user login - redirect to explore page
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Login successful!')),
-            );
-            if (context.mounted) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Login successful!')),
+              );
               Navigator.pushReplacementNamed(context, '/explore-more-2');
             }
           }
@@ -91,17 +114,23 @@ class _LoginScreenState extends State<LoginScreen> {
       } else if (e.code == 'user-disabled') {
         errorMessage = 'This account has been disabled.';
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(errorMessage), backgroundColor: Colors.red),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMessage), backgroundColor: Colors.red),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Login failed: $e'), backgroundColor: Colors.red),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Login failed: $e'), backgroundColor: Colors.red),
+        );
+      }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -115,7 +144,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (kIsWeb) {
         // Web sign-in
         GoogleAuthProvider googleProvider = GoogleAuthProvider();
-        userCredential = await FirebaseAuth.instance.signInWithPopup(
+        userCredential = await _auth.signInWithPopup(
           googleProvider,
         );
       } else {
@@ -155,7 +184,7 @@ class _LoginScreenState extends State<LoginScreen> {
         );
 
           // Sign in to Firebase with the credential
-        userCredential = await FirebaseAuth.instance.signInWithCredential(
+        userCredential = await _auth.signInWithCredential(
           credential,
         );
           
@@ -192,13 +221,13 @@ class _LoginScreenState extends State<LoginScreen> {
            // Check if user is admin/teacher
            if (user.email == 'utkarshacademy20@gmail.com') {
              // Admin/Teacher login
-             ScaffoldMessenger.of(context).showSnackBar(
-               const SnackBar(content: Text('Welcome Admin!'), backgroundColor: Colors.green),
-             );
-             if (context.mounted) {
-               Navigator.pushReplacementNamed(context, '/admin-dashboard');
-             }
-           } else {
+             if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Welcome Admin!'), backgroundColor: Colors.green),
+              );
+              Navigator.pushReplacementNamed(context, '/admin-dashboard');
+            }
+          } else {
              // Check if user has approved enrollment
              final enrollmentQuery = await FirebaseFirestore.instance
                  .collection('enrollments')
@@ -209,19 +238,19 @@ class _LoginScreenState extends State<LoginScreen> {
 
              if (enrollmentQuery.docs.isNotEmpty) {
                // Student has approved enrollment
-               ScaffoldMessenger.of(context).showSnackBar(
-                 const SnackBar(content: Text('Welcome Student!'), backgroundColor: Colors.green),
-               );
-               if (context.mounted) {
+               if (mounted) {
+                 ScaffoldMessenger.of(context).showSnackBar(
+                   const SnackBar(content: Text('Welcome Student!'), backgroundColor: Colors.green),
+                 );
                  Navigator.pushReplacementNamed(context, '/student-dashboard');
                }
              } else {
                // Regular user login - redirect to explore page
-               ScaffoldMessenger.of(context).showSnackBar(
-                 const SnackBar(content: Text('Signed in with Google!')),
-               );
-               if (context.mounted) {
-                Navigator.pushReplacementNamed(context, '/explore-more-2');
+               if (mounted) {
+                 ScaffoldMessenger.of(context).showSnackBar(
+                   const SnackBar(content: Text('Signed in with Google!')),
+                 );
+                 Navigator.pushReplacementNamed(context, '/explore-more-2');
                }
              }
            }
@@ -243,22 +272,36 @@ class _LoginScreenState extends State<LoginScreen> {
       } else if (e.code == 'network-request-failed') {
         errorMessage = 'Network error. Please check your internet connection.';
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(errorMessage), backgroundColor: Colors.red),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMessage), backgroundColor: Colors.red),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Google sign-in failed: $e'), backgroundColor: Colors.red));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Google sign-in failed: $e'), backgroundColor: Colors.red));
+      }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
   Future<void> _resendVerificationEmail() async {
     if (emailController.text.trim().isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please enter your email address'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please enter your email address'),

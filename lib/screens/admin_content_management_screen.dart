@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
-import 'dart:typed_data';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -47,7 +46,7 @@ class _AdminContentManagementScreenState
   String? _selectedFileName;
   String? _selectedFilePath;
   Uint8List? _selectedFileBytes;
-  List<String> _tags = [];
+  final List<String> _tags = [];
   final _tagController = TextEditingController();
   bool _isUploading = false;
   double _uploadProgress = 0.0;
@@ -60,9 +59,14 @@ class _AdminContentManagementScreenState
   String _selectedResultStudent = 'All Students';
   List<String> _availableResultSubjects = [];
   List<String> _availableResultStudents = [];
+  // Results percentage filters
+  final TextEditingController _minPctController = TextEditingController();
+  final TextEditingController _maxPctController = TextEditingController();
+  int? _minPercentage;
+  int? _maxPercentage;
 
   // MCQ specific fields
-  List<Map<String, dynamic>> _mcqQuestions = [];
+  final List<Map<String, dynamic>> _mcqQuestions = [];
   final _questionController = TextEditingController();
   final _optionAController = TextEditingController();
   final _optionBController = TextEditingController();
@@ -72,32 +76,6 @@ class _AdminContentManagementScreenState
   String _selectedCorrectAnswer = 'A';
   int _questionMarks = 1;
 
-  Future<void> _debugAllTestResults() async {
-    try {
-      print('=== DEBUGGING ALL TEST RESULTS ===');
-      final snapshot =
-          await FirebaseFirestore.instance.collection('test_results').get();
-
-      print('Total test results in database: ${snapshot.docs.length}');
-
-      for (var doc in snapshot.docs) {
-        final data = doc.data();
-        print('Result ID: ${doc.id}');
-        print('  Student: ${data['studentEmail']}');
-        print('  Test Title: ${data['testTitle']}');
-        print('  Test Standard: ${data['testStandard']}');
-        print('  Test Board: ${data['testBoard']}');
-        print('  Subject: ${data['subject']}');
-        print('  Score: ${data['score']}/${data['totalMarks']}');
-        print('  Submitted: ${data['submittedAt']}');
-        print('---');
-      }
-      print('=== END DEBUG ===');
-    } catch (e) {
-      print('Error debugging test results: $e');
-    }
-  }
-
   @override
   void initState() {
     super.initState();
@@ -106,8 +84,7 @@ class _AdminContentManagementScreenState
     if (widget.isEditMode) {
       _loadContent();
     }
-    // Debug all test results on init
-    _debugAllTestResults();
+    // Debug logs removed for production
   }
 
   @override
@@ -128,6 +105,8 @@ class _AdminContentManagementScreenState
     _optionDController.dispose();
     _explanationController.dispose();
     _tabController.dispose();
+    _minPctController.dispose();
+    _maxPctController.dispose();
     super.dispose();
   }
 
@@ -186,11 +165,11 @@ class _AdminContentManagementScreenState
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.9),
+              color: Colors.white.withValues(alpha: 0.9),
               borderRadius: BorderRadius.circular(15),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 10,
                   offset: const Offset(0, 5),
                 ),
@@ -258,11 +237,11 @@ class _AdminContentManagementScreenState
           Expanded(
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.9),
+                color: Colors.white.withValues(alpha: 0.9),
                 borderRadius: BorderRadius.circular(15),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     blurRadius: 10,
                     offset: const Offset(0, 5),
                   ),
@@ -294,7 +273,7 @@ class _AdminContentManagementScreenState
                         Text(
                           '${_contentList.length} items',
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.8),
+                            color: Colors.white.withValues(alpha: 0.8),
                             fontSize: 14,
                           ),
                         ),
@@ -553,8 +532,8 @@ class _AdminContentManagementScreenState
                     child:
                         _isUploading
                             ? const CircularProgressIndicator(
-                              color: Colors.white,
-                            )
+                                  color: Colors.white,
+                                )
                             : const Text('Save Content'),
                   ),
                 ),
@@ -604,7 +583,7 @@ class _AdminContentManagementScreenState
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          value: _selectedSubject,
+          initialValue: _selectedSubject,
           decoration: InputDecoration(
             hintText: 'Select subject',
             border: OutlineInputBorder(
@@ -925,7 +904,7 @@ class _AdminContentManagementScreenState
                   ),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
-                    value: _selectedCorrectAnswer,
+                    initialValue: _selectedCorrectAnswer,
                     decoration: InputDecoration(
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
@@ -1022,7 +1001,7 @@ class _AdminContentManagementScreenState
                 ),
               ),
             );
-          }).toList(),
+          }),
         ],
       ],
     );
@@ -1332,38 +1311,38 @@ class _AdminContentManagementScreenState
             Text(content['description'] ?? ''),
             const SizedBox(height: 4),
             SingleChildScrollView(
-  scrollDirection: Axis.horizontal,
-  child: Row(
-    children: [
-      Icon(Icons.category, size: 16, color: Colors.grey[600]),
-      const SizedBox(width: 4),
-      Text(
-        contentType.toUpperCase(),
-        style: TextStyle(
-          color: iconColor,
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-      const SizedBox(width: 16),
-      Icon(Icons.subject, size: 16, color: Colors.grey[600]),
-      const SizedBox(width: 4),
-      Text(
-        content['subject'] ?? 'No subject',
-        style: TextStyle(color: Colors.grey[600], fontSize: 12),
-      ),
-      const SizedBox(width: 16),
-      if (content['totalMarks'] != null) ...[
-        Icon(Icons.star, size: 16, color: Colors.amber[600]),
-        const SizedBox(width: 4),
-        Text(
-          '${content['totalMarks']} marks',
-          style: TextStyle(color: Colors.amber[700], fontSize: 12),
-        ),
-      ],
-    ],
-  ),
-),
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  Icon(Icons.category, size: 16, color: Colors.grey[600]),
+                  const SizedBox(width: 4),
+                  Text(
+                    contentType.toUpperCase(),
+                    style: TextStyle(
+                      color: iconColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Icon(Icons.subject, size: 16, color: Colors.grey[600]),
+                  const SizedBox(width: 4),
+                  Text(
+                    content['subject'] ?? 'No subject',
+                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                  ),
+                  const SizedBox(width: 16),
+                  if (content['totalMarks'] != null) ...[
+                    Icon(Icons.star, size: 16, color: Colors.amber[600]),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${content['totalMarks']} marks',
+                      style: TextStyle(color: Colors.amber[700], fontSize: 12),
+                    ),
+                  ],
+                ],
+              ),
+            ),
             if (content['fileName'] != null) ...[
               const SizedBox(height: 4),
               Row(
@@ -1383,24 +1362,24 @@ class _AdminContentManagementScreenState
           ],
         ),
         trailing: FittedBox(
-  fit: BoxFit.scaleDown,
-  alignment: Alignment.centerRight,
-  child: Row(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      IconButton(
-        icon: const Icon(Icons.visibility, color: Colors.blue),
-        onPressed: () => _viewContent(content),
-        tooltip: 'View Details',
-      ),
-      IconButton(
-        icon: const Icon(Icons.close, color: Colors.red),
-        onPressed: () => _deleteContent(content['id']),
-        tooltip: 'Delete',
-      ),
-    ],
-  ),
-),
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerRight,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.visibility, color: Colors.blue),
+                onPressed: () => _viewContent(content),
+                tooltip: 'View Details',
+              ),
+              IconButton(
+                icon: const Icon(Icons.close, color: Colors.red),
+                onPressed: () => _deleteContent(content['id']),
+                tooltip: 'Delete',
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1410,251 +1389,251 @@ class _AdminContentManagementScreenState
       context: context,
       builder:
           (context) => AlertDialog(
-            title: const Text('Delete Content'),
-            content: const Text(
-              'Are you sure you want to delete this content?',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () async {
-                  Navigator.of(context).pop();
-                  try {
-                    await FirebaseFirestore.instance
-                        .collection('content')
-                        .doc(contentId)
-                        .delete();
-                    _loadContent(); // Refresh the list
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Content deleted successfully'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                  } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Error deleting content: $e'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  }
-                },
-                child: const Text(
-                  'Delete',
-                  style: TextStyle(color: Colors.red),
-                ),
-              ),
-            ],
+        title: const Text('Delete Content'),
+        content: const Text(
+          'Are you sure you want to delete this content?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
           ),
+          TextButton(
+            onPressed: () async {
+              Navigator.of(context).pop();
+              try {
+                await FirebaseFirestore.instance
+                    .collection('content')
+                    .doc(contentId)
+                    .delete();
+                _loadContent(); // Refresh the list
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Content deleted successfully'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Error deleting content: $e'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   void _viewContent(Map<String, dynamic> content) {
-  final contentType = content['type'] as String? ?? '';
+    final contentType = content['type'] as String? ?? '';
 
-  if (contentType == 'descriptive' &&
-      content['fileUrl'] != null &&
-      content['fileUrl'].isNotEmpty) {
+    if (contentType == 'descriptive' &&
+        content['fileUrl'] != null &&
+        content['fileUrl'].isNotEmpty) {
 
-    final String url = content['fileUrl'].toString().trim();
-    final Uri? uri = Uri.tryParse(url);
-    final bool isValid = uri != null &&
-        (uri.scheme == 'http' || uri.scheme == 'https') &&
-        uri.host.isNotEmpty;
+      final String url = content['fileUrl'].toString().trim();
+      final Uri? uri = Uri.tryParse(url);
+      final bool isValid = uri != null &&
+          (uri.scheme == 'http' || uri.scheme == 'https') &&
+          uri.host.isNotEmpty;
 
-    if (!isValid) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invalid file URL for this item.')),
-      );
-      return;
-    }
+      if (!isValid) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Invalid file URL for this item.')),
+        );
+        return;
+      }
 
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => ContentViewerScreen(
-          title: content['title'] ?? 'Descriptive Exam',
-          fileUrl: url,
-          fileType: 'pdf',
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => ContentViewerScreen(
+            title: content['title'] ?? 'Descriptive Exam',
+            fileUrl: url,
+            fileType: 'pdf',
+          ),
         ),
-      ),
-    );
-  } else if (contentType == 'mcq') {
-    _showMCQTestDetails(content);
-  } else {
-    _showContentDetails(content);
+      );
+    } else if (contentType == 'mcq') {
+      _showMCQTestDetails(content);
+    } else {
+      _showContentDetails(content);
+    }
   }
-}
 
   void _showContentDetails(Map<String, dynamic> content) {
-  showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      insetPadding: const EdgeInsets.symmetric(horizontal: 16),
-      title: Text(content['title'] ?? 'Content Details'),
-      content: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Description: ${content['description'] ?? 'N/A'}'),
-            const SizedBox(height: 8),
-            Text('Subject: ${content['subject'] ?? 'N/A'}'),
-            const SizedBox(height: 8),
-            Text('Type: ${content['type'] ?? 'N/A'}'),
-            if (content['totalMarks'] != null) ...[
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 16),
+        title: Text(content['title'] ?? 'Content Details'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Description: ${content['description'] ?? 'N/A'}'),
               const SizedBox(height: 8),
-              Text('Total Marks: ${content['totalMarks']}'),
-            ],
-            if (content['timeLimit'] != null) ...[
+              Text('Subject: ${content['subject'] ?? 'N/A'}'),
               const SizedBox(height: 8),
-              Text('Time Limit: ${content['timeLimit']} minutes'),
+              Text('Type: ${content['type'] ?? 'N/A'}'),
+              if (content['totalMarks'] != null) ...[
+                const SizedBox(height: 8),
+                Text('Total Marks: ${content['totalMarks']}'),
+              ],
+              if (content['timeLimit'] != null) ...[
+                const SizedBox(height: 8),
+                Text('Time Limit: ${content['timeLimit']} minutes'),
+              ],
+              if (content['fileName'] != null) ...[
+                const SizedBox(height: 8),
+                Text('File: ${content['fileName']}'),
+              ],
             ],
-            if (content['fileName'] != null) ...[
-              const SizedBox(height: 8),
-              Text('File: ${content['fileName']}'),
-            ],
-          ],
+          ),
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Close'),
-        ),
-      ],
-    ),
-  );
-}
+    );
+  }
 
   void _showMCQTestDetails(Map<String, dynamic> content) {
     showDialog(
       context: context,
       builder:
           (context) => Dialog(
-            insetPadding: const EdgeInsets.all(20),
-            child: Container(
-              width: MediaQuery.of(context).size.width * 0.9,
-              height: MediaQuery.of(context).size.height * 0.8,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(15),
-                color: Colors.white,
+        insetPadding: const EdgeInsets.all(20),
+        child: Container(
+          width: MediaQuery.of(context).size.width * 0.9,
+          height: MediaQuery.of(context).size.height * 0.8,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(15),
+            color: Colors.white,
+          ),
+          child: Column(
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.purple[700],
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(15),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.quiz, color: Colors.white, size: 28),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        content['title'] ?? 'MCQ Test Details',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                  ],
+                ),
               ),
-              child: Column(
-                children: [
-                  // Header
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: Colors.purple[700],
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(15),
+              // Test Info
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.purple[50],
+                  border: Border(
+                    bottom: BorderSide(color: Colors.purple[200]!),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Subject: ${content['subject'] ?? 'N/A'}'),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Total Marks: ${content['totalMarks'] ?? 'N/A'}',
+                          ),
+                        ],
                       ),
                     ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.quiz, color: Colors.white, size: 28),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            content['title'] ?? 'MCQ Test Details',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.close, color: Colors.white),
-                          onPressed: () => Navigator.of(context).pop(),
-                        ),
-                      ],
-                    ),
-                  ),
-                  // Test Info
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.purple[50],
-                      border: Border(
-                        bottom: BorderSide(color: Colors.purple[200]!),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Subject: ${content['subject'] ?? 'N/A'}'),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Total Marks: ${content['totalMarks'] ?? 'N/A'}',
-                              ),
-                            ],
-                          ),
-                        ),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Time Limit: ${content['timeLimit'] ?? 'N/A'} minutes',
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Questions: ${(content['questions'] as List).length}',
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  // Questions List
-                  Expanded(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(16),
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Test Questions:',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.purple[700],
-                            ),
+                            'Time Limit: ${content['timeLimit'] ?? 'N/A'} minutes',
                           ),
-                          const SizedBox(height: 16),
-                          if (content['questions'] != null)
-                            ...((content['questions'] as List)
-                                .asMap()
-                                .entries
-                                .map((entry) {
-                                  final index = entry.key;
-                                  final question =
-                                      entry.value as Map<String, dynamic>;
-                                  return _buildQuestionCard(
-                                    index + 1,
-                                    question,
-                                  );
-                                })
-                                .toList())
-                          else
-                            const Text('No questions available'),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Questions: ${(content['questions'] as List).length}',
+                          ),
                         ],
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
+              // Questions List
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Test Questions:',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.purple[700],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      if (content['questions'] != null)
+                        ...((content['questions'] as List)
+                            .asMap()
+                            .entries
+                            .map((entry) {
+                              final index = entry.key;
+                              final question =
+                                  entry.value as Map<String, dynamic>;
+                              return _buildQuestionCard(
+                                index + 1,
+                                question,
+                              );
+                            })
+                            .toList())
+                      else
+                        const Text('No questions available'),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
+        ),
+      ),
     );
   }
 
@@ -1834,212 +1813,206 @@ class _AdminContentManagementScreenState
     );
   }
 
-  bool _hasValidFile() {
-    // Check if we have either file bytes (web) or file path (mobile/desktop)
-    return _selectedFileBytes != null;
-  }
-
   Future<void> _saveContent() async {
-  if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) return;
 
-  // 1) On mobile/desktop, make sure bytes are loaded from path before we validate
-  if (_selectedFileBytes == null && _selectedFilePath != null && !kIsWeb) {
-    try {
-      _selectedFileBytes = await File(_selectedFilePath!).readAsBytes();
-    } catch (_) {
-      // swallow and let validation below handle it
+    // 1) On mobile/desktop, make sure bytes are loaded from path before we validate
+    if (_selectedFileBytes == null && _selectedFilePath != null && !kIsWeb) {
+      try {
+        _selectedFileBytes = await File(_selectedFilePath!).readAsBytes();
+      } catch (_) {
+        // swallow and let validation below handle it
+      }
     }
-  }
 
-  // 2) Validate presence of a file for types that require it
-  final bool fileIsRequired =
-      widget.contentType == ContentType.assignment ||
-      widget.contentType == ContentType.notes ||
-      widget.contentType == ContentType.descriptive;
+    // 2) Validate presence of a file for types that require it
+    final bool fileIsRequired =
+        widget.contentType == ContentType.assignment ||
+        widget.contentType == ContentType.notes ||
+        widget.contentType == ContentType.descriptive;
 
-  if (fileIsRequired && _selectedFileBytes == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          widget.contentType == ContentType.descriptive
-              ? 'Please select a PDF file for descriptive exam'
-              : 'Please select a PDF file',
+    if (fileIsRequired && _selectedFileBytes == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            widget.contentType == ContentType.descriptive
+                ? 'Please select a PDF file for descriptive exam'
+                : 'Please select a PDF file',
+          ),
+          backgroundColor: Colors.red,
         ),
-        backgroundColor: Colors.red,
-      ),
-    );
-    return;
-  }
+      );
+      return;
+    }
 
-  setState(() {
-    _isUploading = true;
-    _uploadProgress = 0.0;
-  });
+    setState(() {
+      _isUploading = true;
+      _uploadProgress = 0.0;
+    });
 
-  try {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) throw Exception('User not authenticated');
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) throw Exception('User not authenticated');
 
-    String? downloadUrl;
-    String? filePath;
+      String? downloadUrl;
+      String? filePath;
 
-    // 3) Upload only when bytes are present (prevents 0-byte uploads)
-    if (fileIsRequired && _selectedFileBytes != null) {
-      final String timePrefix = DateTime.now().millisecondsSinceEpoch.toString();
-      final String safeName = (_selectedFileName ?? 'file.pdf').replaceAll("/", "_");
+      // 3) Upload only when bytes are present (prevents 0-byte uploads)
+      if (fileIsRequired && _selectedFileBytes != null) {
+        final String timePrefix = DateTime.now().millisecondsSinceEpoch.toString();
+        final String safeName = (_selectedFileName ?? 'file.pdf').replaceAll("/", "_");
 
-      // Determine storage path based on content type
-      if (widget.contentType == ContentType.descriptive) {
-        filePath = 'descriptive_exams/${widget.standard.standardDisplayName}/${timePrefix}_$safeName';
-      } else {
-        filePath = 'content/${timePrefix}_$safeName';
+        // Determine storage path based on content type
+        if (widget.contentType == ContentType.descriptive) {
+          filePath = 'descriptive_exams/${widget.standard.standardDisplayName}/${timePrefix}_$safeName';
+        } else {
+          filePath = 'content/${timePrefix}_$safeName';
+        }
+
+        final Reference storageRef = FirebaseStorage.instance.ref().child(filePath);
+
+        final SettableMetadata metadata = SettableMetadata(
+          contentType: 'application/pdf',
+          customMetadata: {
+            'uploadedBy': user.uid,
+            'title': _titleController.text,
+            'type': widget.contentType.name,
+          },
+        );
+
+        final UploadTask task = storageRef.putData(_selectedFileBytes!, metadata);
+        task.snapshotEvents.listen((TaskSnapshot snap) {
+          if (snap.totalBytes > 0) {
+            setState(() {
+              _uploadProgress = snap.bytesTransferred / snap.totalBytes;
+            });
+          }
+        });
+
+        final TaskSnapshot snapshot = await task;
+        downloadUrl = await snapshot.ref.getDownloadURL();
       }
 
-      final Reference storageRef = FirebaseStorage.instance.ref().child(filePath);
+      // 4) Guard: file-required types must yield a valid URL
+      if (fileIsRequired && (downloadUrl == null || downloadUrl.isEmpty)) {
+        throw Exception('Upload failed or no file selected. Please reselect the file and try again.');
+      }
 
-      final SettableMetadata metadata = SettableMetadata(
-        contentType: 'application/pdf',
-        customMetadata: {
-          'uploadedBy': user.uid,
-          'title': _titleController.text,
-          'type': widget.contentType.name,
-        },
-      );
+      // 5) Build content document
+      final contentData = {
+        'title': _titleController.text,
+        'description': _descriptionController.text,
+        'type': widget.contentType.name,
+        'fileUrl': downloadUrl ?? '',
+        'filePath': filePath ?? '',
+        'fileName': _selectedFileName ?? '',
+        'fileType': 'pdf',
+        'fileSize': _selectedFileBytes?.length ?? 0,
+        'uploadDate': Timestamp.now(),
+        'uploadedBy': user.uid,
+        'targetCourses': ['Basic Mathematics'], // Default course
+        'targetStandards': [widget.standard.standardDisplayName],
+        'subject': _selectedSubject,
+        'isActive': true,
+        'dueDate': widget.contentType == ContentType.assignment && _dueDate != null
+            ? Timestamp.fromDate(_dueDate!)
+            : null,
+        'isWebFile': kIsWeb,
+        'isDescriptiveExam': widget.contentType == ContentType.descriptive,
+        'standard': widget.standard.standardDisplayName,
+        'board': widget.board.boardDisplayName,
+        'chapterNumber': _chapterNumberController.text,
+        'chapterName': _chapterNameController.text,
+        'tags': _tags,
+        'totalMarks': _totalMarksController.text.isNotEmpty
+            ? int.tryParse(_totalMarksController.text)
+            : _mcqQuestions.isNotEmpty
+                ? _mcqQuestions.fold<int>(0, (sum, q) => sum + (q['marks'] as int))
+                : null,
+        'timeLimit': _timeLimitController.text.isNotEmpty
+            ? int.tryParse(_timeLimitController.text)
+            : null,
+        'instructions': _instructionsController.text.isNotEmpty
+            ? _instructionsController.text
+            : null,
+        'questions': _mcqQuestions,
+      };
 
-      final UploadTask task = storageRef.putData(_selectedFileBytes!, metadata);
-      task.snapshotEvents.listen((TaskSnapshot snap) {
-        if (snap.totalBytes > 0) {
-          setState(() {
-            _uploadProgress = snap.bytesTransferred / snap.totalBytes;
-          });
-        }
+      await FirebaseFirestore.instance.collection('content').add(contentData);
+
+      // 6) Reset form
+      _titleController.clear();
+      _descriptionController.clear();
+      _chapterNumberController.clear();
+      _chapterNameController.clear();
+      _totalMarksController.clear();
+      _timeLimitController.clear();
+      _instructionsController.clear();
+      _tagController.clear();
+      _questionController.clear();
+      _optionAController.clear();
+      _optionBController.clear();
+      _optionCController.clear();
+      _optionDController.clear();
+      _explanationController.clear();
+
+      setState(() {
+        _dueDate = null;
+        _selectedFileName = null;
+        _selectedFilePath = null;
+        _selectedFileBytes = null;
+        _tags.clear();
+        _mcqQuestions.clear();
+        _selectedCorrectAnswer = 'A';
+        _questionMarks = 1;
+        _isUploading = false;
+        _uploadProgress = 0.0;
       });
 
-      final TaskSnapshot snapshot = await task;
-      downloadUrl = await snapshot.ref.getDownloadURL();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Content saved successfully!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      Navigator.of(context).pop();
+      if (widget.isEditMode) {
+        _loadContent();
+      }
+    } catch (e) {
+      String errorMessage = 'Error saving content: $e';
+      if (e.toString().contains('CORS')) {
+        errorMessage = 'CORS Error: Configure Firebase Storage CORS (see FIREBASE_STORAGE_CORS_SETUP.md).';
+      } else if (e.toString().contains('permission')) {
+        errorMessage = 'Permission Error: Check Firebase Storage rules.';
+      } else if (e.toString().contains('network')) {
+        errorMessage = 'Network Error: Check your internet connection.';
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: Colors.red,
+        ),
+      );
+      setState(() {
+        _isUploading = false;
+        _uploadProgress = 0.0;
+      });
     }
-
-    // 4) Guard: file-required types must yield a valid URL
-    if (fileIsRequired && (downloadUrl == null || downloadUrl.isEmpty)) {
-      throw Exception('Upload failed or no file selected. Please reselect the file and try again.');
-    }
-
-    // 5) Build content document
-    final contentData = {
-      'title': _titleController.text,
-      'description': _descriptionController.text,
-      'type': widget.contentType.name,
-      'fileUrl': downloadUrl ?? '',
-      'filePath': filePath ?? '',
-      'fileName': _selectedFileName ?? '',
-      'fileType': 'pdf',
-      'fileSize': _selectedFileBytes?.length ?? 0,
-      'uploadDate': Timestamp.now(),
-      'uploadedBy': user.uid,
-      'targetCourses': ['Basic Mathematics'], // Default course
-      'targetStandards': [widget.standard.standardDisplayName],
-      'subject': _selectedSubject,
-      'isActive': true,
-      'dueDate': widget.contentType == ContentType.assignment && _dueDate != null
-          ? Timestamp.fromDate(_dueDate!)
-          : null,
-      'isWebFile': kIsWeb,
-      'isDescriptiveExam': widget.contentType == ContentType.descriptive,
-      'standard': widget.standard.standardDisplayName,
-      'board': widget.board.boardDisplayName,
-      'chapterNumber': _chapterNumberController.text,
-      'chapterName': _chapterNameController.text,
-      'tags': _tags,
-      'totalMarks': _totalMarksController.text.isNotEmpty
-          ? int.tryParse(_totalMarksController.text)
-          : _mcqQuestions.isNotEmpty
-              ? _mcqQuestions.fold<int>(0, (sum, q) => sum + (q['marks'] as int))
-              : null,
-      'timeLimit': _timeLimitController.text.isNotEmpty
-          ? int.tryParse(_timeLimitController.text)
-          : null,
-      'instructions': _instructionsController.text.isNotEmpty
-          ? _instructionsController.text
-          : null,
-      'questions': _mcqQuestions,
-    };
-
-    await FirebaseFirestore.instance.collection('content').add(contentData);
-
-    // 6) Reset form
-    _titleController.clear();
-    _descriptionController.clear();
-    _chapterNumberController.clear();
-    _chapterNameController.clear();
-    _totalMarksController.clear();
-    _timeLimitController.clear();
-    _instructionsController.clear();
-    _tagController.clear();
-    _questionController.clear();
-    _optionAController.clear();
-    _optionBController.clear();
-    _optionCController.clear();
-    _optionDController.clear();
-    _explanationController.clear();
-
-    setState(() {
-      _dueDate = null;
-      _selectedFileName = null;
-      _selectedFilePath = null;
-      _selectedFileBytes = null;
-      _tags.clear();
-      _mcqQuestions.clear();
-      _selectedCorrectAnswer = 'A';
-      _questionMarks = 1;
-      _isUploading = false;
-      _uploadProgress = 0.0;
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Content saved successfully!'),
-        backgroundColor: Colors.green,
-      ),
-    );
-
-    Navigator.of(context).pop();
-    if (widget.isEditMode) {
-      _loadContent();
-    }
-  } catch (e) {
-    String errorMessage = 'Error saving content: $e';
-    if (e.toString().contains('CORS')) {
-      errorMessage = 'CORS Error: Configure Firebase Storage CORS (see FIREBASE_STORAGE_CORS_SETUP.md).';
-    } else if (e.toString().contains('permission')) {
-      errorMessage = 'Permission Error: Check Firebase Storage rules.';
-    } else if (e.toString().contains('network')) {
-      errorMessage = 'Network Error: Check your internet connection.';
-    }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(errorMessage),
-        backgroundColor: Colors.red,
-        duration: const Duration(seconds: 8),
-      ),
-    );
-    setState(() {
-      _isUploading = false;
-      _uploadProgress = 0.0;
-    });
   }
-}
 
   void _showAddContentDialog() {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder:
             (context) => AdminContentManagementScreen(
-              standard: widget.standard,
-              board: widget.board,
-              contentType: widget.contentType,
-              isEditMode: false,
-            ),
+          standard: widget.standard,
+          board: widget.board,
+          contentType: widget.contentType,
+          isEditMode: false,
+        ),
       ),
     );
   }
@@ -2048,32 +2021,32 @@ class _AdminContentManagementScreenState
     return _isLoadingContent
         ? const Center(child: CircularProgressIndicator())
         : _contentList.isEmpty
-        ? Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.inbox, size: 80, color: Colors.grey[400]),
-              const SizedBox(height: 16),
-              Text(
-                'No content found',
-                style: TextStyle(fontSize: 18, color: Colors.grey[600]),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Add your first ${widget.contentType.typeDisplayName.toLowerCase()}',
-                style: TextStyle(fontSize: 14, color: Colors.grey[500]),
-              ),
-            ],
-          ),
-        )
-        : ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: _contentList.length,
-          itemBuilder: (context, index) {
-            final content = _contentList[index];
-            return _buildContentCard(content);
-          },
-        );
+            ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.inbox, size: 80, color: Colors.grey[400]),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No content found',
+                      style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Add your first ${widget.contentType.typeDisplayName.toLowerCase()}',
+                      style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                    ),
+                  ],
+                ),
+              )
+            : ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: _contentList.length,
+                itemBuilder: (context, index) {
+                  final content = _contentList[index];
+                  return _buildContentCard(content);
+                },
+              );
   }
 
   Widget _buildResultsTab() {
@@ -2095,79 +2068,93 @@ class _AdminContentManagementScreenState
             color: Colors.grey[100],
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              IconButton(
-                icon: const Icon(Icons.refresh),
-                onPressed: () {
-                  // Force refresh by rebuilding the widget
-                  setState(() {});
-                },
-                tooltip: 'Refresh Results',
+              Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.refresh),
+                    onPressed: () {
+                      setState(() {});
+                    },
+                    tooltip: 'Refresh Results',
+                  ),
+                ],
               ),
-              const SizedBox(width: 8),
-              IconButton(
-                icon: const Icon(Icons.bug_report),
-                onPressed: () {
-                  _debugAllTestResults();
-                },
-                tooltip: 'Debug All Results',
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: DropdownButtonFormField<String>(
-                  value: _selectedResultSubject,
-                  decoration: const InputDecoration(
-                    labelText: 'Subject',
-                    border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      value: _selectedResultSubject,
+                      decoration: const InputDecoration(
+                        labelText: 'Subject',
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
+                      items: ['All Subjects', ..._availableResultSubjects]
+                          .map((subject) => DropdownMenuItem(value: subject, child: Text(subject)))
+                          .toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedResultSubject = value ?? 'All Subjects';
+                        });
+                      },
                     ),
                   ),
-                  items:
-                      ['All Subjects', ..._availableResultSubjects].map((
-                        subject,
-                      ) {
-                        return DropdownMenuItem(
-                          value: subject,
-                          child: Text(subject),
-                        );
-                      }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedResultSubject = value ?? 'All Subjects';
-                    });
-                  },
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: DropdownButtonFormField<String>(
-                  value: _selectedResultStudent,
-                  decoration: const InputDecoration(
-                    labelText: 'Student',
-                    border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      value: _selectedResultStudent,
+                      decoration: const InputDecoration(
+                        labelText: 'Student',
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
+                      items: ['All Students', ..._availableResultStudents]
+                          .map((student) => DropdownMenuItem(value: student, child: Text(student)))
+                          .toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedResultStudent = value ?? 'All Students';
+                        });
+                      },
                     ),
                   ),
-                  items:
-                      ['All Students', ..._availableResultStudents].map((
-                        student,
-                      ) {
-                        return DropdownMenuItem(
-                          value: student,
-                          child: Text(student),
-                        );
-                      }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedResultStudent = value ?? 'All Students';
-                    });
-                  },
-                ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _minPctController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Min %',
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (v) => setState(() {
+                        _minPercentage = int.tryParse(v.trim());
+                      }),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextField(
+                      controller: _maxPctController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Max %',
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (v) => setState(() {
+                        _maxPercentage = int.tryParse(v.trim());
+                      }),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -2278,17 +2265,17 @@ class _AdminContentManagementScreenState
               // Populate filter options
               _populateFilterOptions(allResults);
 
-              // Apply filters
-              final results =
-                  allResults.where((result) {
-                      bool subjectMatch =
-                          _selectedResultSubject == 'All Subjects' ||
-                          result['subject'] == _selectedResultSubject;
-                      bool studentMatch =
-                          _selectedResultStudent == 'All Students' ||
-                          result['studentEmail'] == _selectedResultStudent;
-                      return subjectMatch && studentMatch;
-                    }).toList()
+              // Apply filters: subject, student, percentage range
+              final results = allResults.where((result) {
+                    final subjectMatch = _selectedResultSubject == 'All Subjects' ||
+                        result['subject'] == _selectedResultSubject;
+                    final studentMatch = _selectedResultStudent == 'All Students' ||
+                        result['studentEmail'] == _selectedResultStudent;
+                    final pct = (result['percentage'] as int?) ?? -1;
+                    final minOk = _minPercentage == null || pct >= _minPercentage!;
+                    final maxOk = _maxPercentage == null || pct <= _maxPercentage!;
+                    return subjectMatch && studentMatch && minOk && maxOk;
+                  }).toList()
                     ..sort((a, b) {
                       // Sort by submission date in code
                       final aDate =

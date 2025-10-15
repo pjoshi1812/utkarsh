@@ -38,6 +38,7 @@ class _AdminStudentManagementScreenState extends State<AdminStudentManagementScr
           Column(
             children: [
               _filterBar(),
+              _studentsCount(),
               Expanded(child: _studentsList()),
             ],
           ),
@@ -79,6 +80,30 @@ class _AdminStudentManagementScreenState extends State<AdminStudentManagementScr
           ),
         ],
       ),
+    );
+  }
+
+  Widget _studentsCount() {
+    Query query = FirebaseFirestore.instance
+        .collection('enrollments')
+        .where('course', isEqualTo: _selected);
+    if (_status != 'All') {
+      query = query.where('status', isEqualTo: _status);
+    }
+    return StreamBuilder<QuerySnapshot>(
+      stream: query.snapshots(),
+      builder: (context, snap) {
+        final count = snap.data?.size ?? 0;
+        return Container(
+          color: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          alignment: Alignment.centerLeft,
+          child: Text(
+            'Students: $count',
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+        );
+      },
     );
   }
 

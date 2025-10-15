@@ -1465,8 +1465,8 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                         FirebaseFirestore.instance
                             .collection('test_results')
                             .where(
-                              'studentEmail',
-                              isEqualTo: _enrollmentData?['email'],
+                              'studentId',
+                              isEqualTo: FirebaseAuth.instance.currentUser?.uid,
                             )
                             .snapshots(),
                     builder: (context, snapshot) {
@@ -1622,7 +1622,8 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
     final percentage = result['percentage'] as int? ?? 0;
     final submittedAt =
         (result['submittedAt'] as Timestamp?)?.toDate() ?? DateTime.now();
-    final timeTaken = result['timeTaken'] as int? ?? 0;
+    final DateTime? publishedAt =
+        (result['publishedAt'] as Timestamp?)?.toDate();
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -1697,14 +1698,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                     Text('$score/$totalMarks marks'),
                   ],
                 ),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.timer, size: 16, color: Colors.grey[600]),
-                    const SizedBox(width: 4),
-                    Text('${timeTaken} min'),
-                  ],
-                ),
+                const SizedBox.shrink(),
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -1720,12 +1714,12 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
               'Submitted: ${_formatDate(submittedAt)}',
               style: TextStyle(color: Colors.grey[500], fontSize: 12),
             ),
+            if (publishedAt != null)
+              Text(
+                'Published: ${_formatDate(publishedAt)}',
+                style: TextStyle(color: Colors.grey[500], fontSize: 12),
+              ),
           ],
-        ),
-        trailing: IconButton(
-          icon: const Icon(Icons.visibility, color: Colors.blue),
-          onPressed: () => _viewMyResultDetails(result),
-          tooltip: 'View Details',
         ),
       ),
     );

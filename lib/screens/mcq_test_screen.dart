@@ -182,6 +182,7 @@ class _MCQTestScreenState extends State<MCQTestScreen> {
         'testTitle': widget.testData['title']?.toString() ?? '',
         'studentId': user.uid,
         'studentEmail': user.email ?? '',
+        'testType': 'MCQ',
         'score': score,
         'totalMarks': _totalMarks,
         'percentage': percentage,
@@ -190,6 +191,7 @@ class _MCQTestScreenState extends State<MCQTestScreen> {
         'questionDetails':
             questionDetails, // Complete question data for detailed view
         'submittedAt': Timestamp.now(),
+        'publishedAt': Timestamp.now(),
         'timeTaken': DateTime.now().difference(_startTime!).inMinutes,
         'standard': widget.testData['standard']?.toString() ?? '',
         'testStandard': widget.testData['standard']?.toString() ?? '',

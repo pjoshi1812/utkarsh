@@ -73,7 +73,7 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen> {
                       Row(
                         children: [
                           Expanded(child: _buildTabButton('All', 0)),
-                          Expanded(child: _buildTabButton('Upcoming', 1)),
+                          Expanded(child: _buildTabButton('Ongoning', 1)),
                           Expanded(child: _buildTabButton('Overdue', 2)),
                         ],
                       ),
@@ -193,6 +193,7 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen> {
   }
 
   Widget _buildAssignmentsList() {
+    // Always build a base stream, then filter by tab in the builder to avoid duplicates
     Stream<List<ContentItem>> stream;
     if (_searchQuery.isNotEmpty) {
       stream = AssignmentsService.searchAssignments(
@@ -209,28 +210,11 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen> {
         subject: _selectedSubject,
       );
     } else {
-      switch (_selectedTab) {
-        case 1:
-          stream = AssignmentsService.getUpcomingAssignments(
-            standard: widget.standard,
-            board: widget.board,
-            subject: _selectedSubject,
-          );
-          break;
-        case 2:
-          stream = AssignmentsService.getOverdueAssignments(
-            standard: widget.standard,
-            board: widget.board,
-            subject: _selectedSubject,
-          );
-          break;
-        default:
-          stream = AssignmentsService.getAssignments(
-            standard: widget.standard,
-            board: widget.board,
-            subject: _selectedSubject,
-          );
-      }
+      stream = AssignmentsService.getAssignments(
+        standard: widget.standard,
+        board: widget.board,
+        subject: _selectedSubject,
+      );
     }
 
     return StreamBuilder<List<ContentItem>>(
@@ -242,7 +226,22 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen> {
         if (snapshot.hasError) {
           return Center(child: Text('Error: ${snapshot.error}'));
         }
-        final data = snapshot.data ?? const <ContentItem>[];
+        final now = DateTime.now();
+        final data = (snapshot.data ?? const <ContentItem>[]).where((a) {
+          if (a.dueDate == null) {
+            // Items without due date show only in All
+            return _selectedTab == 0;
+          }
+          final due = a.dueDate!;
+          switch (_selectedTab) {
+            case 1: // Upcoming
+              return due.isAfter(now);
+            case 2: // Overdue
+              return due.isBefore(now);
+            default: // All
+              return true;
+          }
+        }).toList();
         if (data.isEmpty) {
           return Center(
             child: Column(

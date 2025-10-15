@@ -46,10 +46,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     // Validate password strength
     String password = passwordController.text.trim();
-    if (password.length < 6) {
+    final strongPw = RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$');
+    if (!strongPw.hasMatch(password)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Password must be at least 6 characters long'),
+          content: Text('Password must be 8+ chars with upper, lower, number, special'),
           backgroundColor: Colors.red,
         ),
       );
@@ -87,6 +88,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           // Continue with registration even if email verification fails
         }
 
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
@@ -98,9 +100,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
         );
 
         // Navigate to explore page after registration
-        if (context.mounted) {
-          Navigator.pushReplacementNamed(context, '/explore-more');
-        }
+        if (!mounted) return;
+        Navigator.pushReplacementNamed(context, '/explore-more');
       }
     } on FirebaseAuthException catch (e) {
       String errorMessage = 'Registration failed';
@@ -111,20 +112,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
       } else if (e.code == 'invalid-email') {
         errorMessage = 'Please enter a valid email address.';
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(errorMessage), backgroundColor: Colors.red),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMessage), backgroundColor: Colors.red),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Registration failed: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Registration failed: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -173,6 +180,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           });
         }
       }
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Registration successful!'),
@@ -181,13 +189,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
 
       // Navigate to explore page after registration
-      if (context.mounted) {
-        Navigator.pushReplacementNamed(context, '/explore-more');
-      }
+      if (!mounted) return;
+      Navigator.pushReplacementNamed(context, '/explore-more');
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Google sign-up failed: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Google sign-up failed: $e')));
+      }
     }
   }
 
@@ -273,7 +282,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 borderRadius: BorderRadius.circular(12),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.green.withOpacity(0.08),
+                                    color: Colors.green.withValues(alpha: 0.08),
                                     blurRadius: 8,
                                     offset: const Offset(0, 2),
                                   ),
@@ -448,7 +457,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     width: 1.5,
                                   ),
                                   elevation: 2,
-                                  shadowColor: Colors.green.withOpacity(0.1),
+                                  shadowColor: Colors.green.withValues(alpha: 0.1),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(16),
                                   ),
