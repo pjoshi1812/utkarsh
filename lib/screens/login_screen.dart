@@ -4,6 +4,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../widgets/custom_text_field.dart';
+import '../services/notification_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -66,6 +67,7 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (userCredential.user != null) {
+        await NotificationService.registerToken(userCredential.user!.uid);
         // Check if user is admin/teacher
         if (emailController.text.trim() == 'utkarshacademy20@gmail.com') {
           // Admin/Teacher login
@@ -196,7 +198,7 @@ class _LoginScreenState extends State<LoginScreen> {
       // Store user info in Firestore if new
       final user = userCredential.user;
       if (user != null) {
-           
+        
         final userDoc = FirebaseFirestore.instance
             .collection('users')
             .doc(user.uid);
@@ -217,6 +219,8 @@ class _LoginScreenState extends State<LoginScreen> {
                'emailVerified': user.emailVerified,
              });
            }
+
+           await NotificationService.registerToken(user.uid);
            
            // Check if user is admin/teacher
            if (user.email == 'utkarshacademy20@gmail.com') {
